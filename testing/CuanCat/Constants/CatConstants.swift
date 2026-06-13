@@ -1,6 +1,16 @@
 import CoreGraphics
 import Foundation
 
+// MARK: - Feature Flags
+
+enum CatFeatureFlags {
+
+    /// Auto-walking saat idle terlalu lama.
+    /// Logic walk TIDAK dihapus — set true (atau panggil
+    /// CatOverlayManager.shared.setWalkingEnabled(true)) untuk mengaktifkan kembali.
+    static let autoWalkingEnabled: Bool = false
+}
+
 // MARK: - Timing Constants
 
 enum CatTimingConstants {
@@ -11,6 +21,13 @@ enum CatTimingConstants {
     /// Idle → walking threshold (seconds)
     /// 8s = trigger walk 2s sebelum batas attention span 10s (Nielsen)
     static let idleToWalkThreshold: TimeInterval = 8.0
+
+    /// Rotasi rest exercise (seconds) — setiap interval ini kucing ganti
+    /// animasi warmup/pushup/starJump lain secara acak.
+    /// ⚠ Harus < idleToWalkThreshold. Jika walking dipakai lagi nanti,
+    /// naikkan nilai ini di atas threshold walk atau matikan rotasi —
+    /// rotasi me-reset idle timer sehingga walking tidak akan pernah trigger.
+    static let restRotationInterval: TimeInterval = 6.0
 
     /// Walking → back to idle threshold (seconds)
     static let walkToIdleThreshold: TimeInterval = 45.0
@@ -46,6 +63,12 @@ enum CatLayoutConstants {
         + Spaces.extraSmall
     static let walkingEdgePadding: CGFloat = 20.0
     static let walkHitSize: CGFloat = 128.0
+
+    /// Jarak dari tepi layar yang dianggap "dibuang" saat drag (dismiss zone)
+    static let dragDismissEdgeThreshold: CGFloat = 20.0
+
+    /// Batas atas posisi Y kucing saat di-drag (jaga di bawah status bar area)
+    static let dragTopMargin: CGFloat = 84.0
     static let defaultStartXRatio: CGFloat = 0.85
     static let speechBubbleOffsetY: CGFloat = -50.0
     static let envelopeBadgeSize: CGFloat = 24.0

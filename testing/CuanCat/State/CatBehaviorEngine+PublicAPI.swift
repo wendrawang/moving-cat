@@ -12,16 +12,13 @@ extension CatBehaviorEngine {
         processEvent(.transactionSuccess)
     }
 
+    /// transactionFailed() dari public API → selalu animasi sad.
     func handleTransactionFailed() {
         applyStressDelta(CatStressConstants.transactionFailedIncrease)
-        processEvent(randomFailedEvent())
+        processEvent(.transactionFailedSad)
     }
 
-    /// Random 50/50 antara annoyed dan sad saat transaksi gagal.
-    private func randomFailedEvent() -> CatEvent {
-        Bool.random() ? .transactionFailed : .transactionFailedSad
-    }
-
+    /// reportError(_:) dari public API → selalu animasi annoyed (transactionFailed).
     func handleTransactionError(_ errorType: CatTransactionError) {
         switch errorType {
         case .gatewayTimeout:
@@ -39,7 +36,7 @@ extension CatBehaviorEngine {
             applyStressDelta(CatStressConstants.transactionFailedIncrease)
             checkAndShowVoucher()
         }
-        processEvent(randomFailedEvent())
+        processEvent(.transactionFailed)
     }
 
     // MARK: - Voucher
@@ -97,103 +94,4 @@ extension CatBehaviorEngine {
         }
     }
 
-    // MARK: - Drag to Dismiss
-
-    func handleDragChanged(translation: CGSize) {
-        guard !isDismissed else { return }
-
-        if !isDragging {
-            isDragging = true
-            if currentState == .walking {
-                snapToCurrentWalkPosition()
-            }
-            stopWalkTimer()
-            stopIdleTimer()
-        }
-
-        withAnimation(nil) {
-            self.dragOffsetX = translation.width
-            self.dragOffsetY = translation.height
-        }
-
-        let finalX = catPositionX + translation.width
-        let finalY = catPositionY + translation.height
-        if isNearScreenEdge(posX: finalX, posY: finalY) {
-            dismiss()
-        }
-    }
-
-    func handleDragEnded(translation: CGSize) {
-        let wasDismissed = isDismissed
-        isDragging = false
-
-        if wasDismissed { return }
-
-        let finalX = catPositionX + translation.width
-        let finalY = catPositionY + translation.height
-
-        if isNearScreenEdge(posX: finalX, posY: finalY) {
-            dismiss()
-        } else {
-            withAnimation(nil) {
-                self.dragOffsetX = 0
-                self.dragOffsetY = 0
-            }
-            startIdleTimer()
-        }
-    }
-
-    func isNearScreenEdge(posX: CGFloat, posY: CGFloat) -> Bool {
-        let threshold: CGFloat = 20
-        return posX < threshold
-            || posX > screenWidth - threshold
-            || posY < threshold
-            || posY > screenHeight - threshold
-    }
-
-    // MARK: - Dismiss / Bring Back
-
-    func dismiss() {
-        // Catat sisi berdasarkan posisi efektif saat dismiss (termasuk drag offset aktif).
-        let effectiveX = catPositionX + dragOffsetX
-        lastDismissedFromRight = effectiveX > screenWidth / 2
-
-        setIsDismissed(true)
-        withAnimation(nil) {
-            self.dragOffsetX = 0
-            self.dragOffsetY = 0
-        }
-        cancelPendingAnimations()
-        stopIdleTimer()
-        stopWalkTimer()
-        CatAudioManager.shared.stopLoop()
-    }
-
-    func bringBack() {
-        guard isDismissed else { return }
-        setIsDismissed(false)
-
-        // Masuk dari sisi yang sama dengan sisi dismiss — kucing keluar kanan, masuk kanan.
-        let offScreenX: CGFloat = lastDismissedFromRight
-            ? screenWidth + CatLayoutConstants.avatarSize
-            : -CatLayoutConstants.avatarSize
-
-        withAnimation(nil) {
-            self.catPositionX = offScreenX
-            self.catPositionY = self.homePositionY
-        }
-
-        setCurrentState(.walking)
-        stateMachine.applyTransition(CatTransitionResult(newState: .walking, sideEffects: []))
-        setWalkDirection(lastDismissedFromRight ? .left : .right)
-        CatAudioManager.shared.play(.walk)
-
-        // Homebase di sisi yang sama dengan sisi masuk:
-        // kanan → berhenti di 85% layar, kiri → berhenti di 15% layar (simetris).
-        walkTargetX = lastDismissedFromRight
-            ? screenWidth * CatLayoutConstants.defaultStartXRatio
-            : screenWidth * (1.0 - CatLayoutConstants.defaultStartXRatio)
-
-        startEnterSceneWalk()
-    }
 }

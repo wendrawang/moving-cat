@@ -39,11 +39,11 @@ extension CatStateMachine {
                 ]
             )
 
-        // Loading stopped saat exhausted → idle
+        // Loading stopped saat exhausted → rest acak
         // Patience sudah di-konversi saat transisi ke exhausted, tidak perlu lagi.
         case (.exhausted, .loadingStopped):
             return CatTransitionResult(
-                newState: .idle,
+                newState: restStateProvider(),
                 sideEffects: [
                     .stopLoadingTimer,
                     .setHomeBase,

@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - Cat Asset Manifest
 //
-// 6 animasi = 6 file .json (Lottie).
+// 9 animasi = 9 file .json (Lottie).
 //
 // Steps:
 //   1. Add .json files ke Xcode project (Build Phases → Copy Bundle Resources)
@@ -11,6 +11,9 @@ import Foundation
 enum CatAssetManifest {
 
     static let idle      = "cat_idle"
+    static let warmup    = "cat_warmup"
+    static let pushup    = "cat_pushup"
+    static let starJump  = "cat_starjump"
     static let walk      = "cat_walk"
     static let annoyed   = "cat_annoyed"
     static let sad       = "cat_sad"
@@ -24,6 +27,9 @@ enum CatAssetManifest {
     static func assetName(animation: CatAnimationType) -> String {
         switch animation {
         case .idle:      return idle
+        case .warmup:    return warmup
+        case .pushup:    return pushup
+        case .starJump:  return starJump
         case .walk:      return walk
         case .annoyed:   return annoyed
         case .sad:       return sad

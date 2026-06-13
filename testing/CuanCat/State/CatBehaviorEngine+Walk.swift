@@ -80,7 +80,7 @@ extension CatBehaviorEngine {
 
         guard duration > 0.05 else {
             setCatPositionX(target)
-            transitionToIdle()
+            transitionToRest()
             return
         }
 
@@ -101,25 +101,26 @@ extension CatBehaviorEngine {
             .delay(for: .seconds(transitionDelay), scheduler: DispatchQueue.main)
             .sink { [weak self] _ in
                 guard let self = self, self.currentState == .walking else { return }
-                self.transitionToIdle()
+                self.transitionToRest()
             }
     }
 
-    // MARK: - Transition to Idle
+    // MARK: - Transition to Rest
 
-    private func transitionToIdle() {
+    private func transitionToRest() {
         stopWalkTimer()
 
         // Snap ke exact target dulu sebelum ubah state — pastikan tidak ada
-        // posisi animation yang masih berjalan saat state sudah idle.
-        // Tanpa ini, cat bergerak 50ms dalam idle state (state desync visual).
+        // posisi animation yang masih berjalan saat state sudah rest.
+        // Tanpa ini, cat bergerak 50ms dalam rest state (state desync visual).
         var transaction = SwiftUI.Transaction()
         transaction.disablesAnimations = true
         withTransaction(transaction) { self.setCatPositionX(self.walkTargetX) }
 
-        setCurrentState(.idle)
+        let restState = stateMachine.nextRestState()
+        setCurrentState(restState)
         stateMachine.applyTransition(
-            CatTransitionResult(newState: .idle, sideEffects: [])
+            CatTransitionResult(newState: restState, sideEffects: [])
         )
         CatAudioManager.shared.play(.idle)
         updateHomeBase()

@@ -21,7 +21,7 @@ struct CatContainerView: View {
     private var catLayer: some View {
         GeometryReader { _ in
             CatAvatarView(
-                currentState: self.engine.currentState,
+                displayAnimation: self.engine.displayAnimation,
                 walkDirection: self.engine.walkDirection,
                 showVoucherEnvelope: self.engine.showVoucherEnvelope,
                 onVoucherTap: { self.engine.handleVoucherTapped() },

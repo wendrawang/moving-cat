@@ -23,7 +23,7 @@ extension CatBehaviorEngine {
         )
 
         switch state {
-        case .idle:
+        case .idle, .warmup, .pushup, .starJump:
             updateHomeBase()
             startIdleTimer()
         case .walking:

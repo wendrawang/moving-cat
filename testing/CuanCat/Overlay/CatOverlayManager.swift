@@ -34,10 +34,9 @@ final class CatOverlayManager {
 
     // MARK: - Prepare (panggil dari AppDelegate sebelum show)
 
-    /// Parse + build semua Lottie layer di background/main-staggered.
-    /// Panggil di AppDelegate.didFinishLaunching agar selesai sebelum show() dipanggil.
+    /// Preload frame animations (rest pool + idle fallback) + audio di background.
+    /// Panggil di AppDelegate.didFinishLaunching agar siap sebelum show() dipanggil.
     func prepare() {
-//        LottieCatRenderer.prebuildAll()
         CatAnimationCache.shared.preloadEager()
         CatAudioManager.shared.prepare()
     }
@@ -46,11 +45,6 @@ final class CatOverlayManager {
 
     func show() {
         guard !isVisible else { return }
-        // Tunggu prebuild selesai sebelum attach ke window.
-        // Kalau prepare() tidak dipanggil, group count = 0 → langsung masuk actualShow().
-//        LottieCatRenderer.prebuildGroup.notify(queue: .main) { [weak self] in
-//            self?.actualShow()
-//        }
         actualShow()
     }
 

@@ -7,8 +7,12 @@ extension CatDemoView {
     var animationSection: some View {
         DemoSection(title: "Force Animation") {
             VStack(spacing: 8) {
-                let allStateWithoutWalk = CatState.allCases.filter({ $0 != .walking })
-                ForEach(allStateWithoutWalk, id: \.self) { state in
+                // idle & walking disembunyikan dari demo — state legacy yang
+                // tidak muncul lagi (tapi tetap ada di kode untuk masa depan)
+                let demoStates = CatState.allCases.filter { state in
+                    state != .walking && state != .idle
+                }
+                ForEach(demoStates, id: \.self) { state in
                     let isDisabled = forceAnimationDisabled(state)
                     let isActive   = engine.currentState == state
 
@@ -30,32 +34,32 @@ extension CatDemoView {
     }
 
     /// Aturan disable Force Animation per state:
-    /// - idle      : disabled saat walking — SwiftUI withAnimation(.linear) tidak bisa
-    ///               di-cancel reliably, posisi lanjut ke walkTargetX → visual bug
+    /// - rest (idle/warmup/pushup/starJump) : disabled saat walking — SwiftUI
+    ///   withAnimation(.linear) tidak bisa di-cancel reliably → visual bug
     /// - walking   : selalu disabled — pos+anim timing bug saat force
-    /// - happy     : hanya dari idle — butuh base state bersih agar timer berjalan benar
+    /// - happy     : hanya dari rest — butuh base state bersih agar timer berjalan benar
     /// - annoyed   : sama seperti happy
-    /// - exhausted : selalu aktif — demo purposes: tampilkan animasi ke customer,
-    ///               exit via force idle setelah selesai
+    /// - exhausted : sama seperti happy
     func forceAnimationDisabled(_ state: CatState) -> Bool {
         switch state {
-        case .idle:               return engine.currentState == .walking
-        case .walking:            return true
-        case .happy:              return engine.currentState != .idle
-        case .annoyed, .sad:      return engine.currentState != .idle
-        case .exhausted:          return engine.currentState != .idle
+        case .idle, .warmup, .pushup, .starJump:
+            return engine.currentState == .walking
+        case .walking:
+            return true
+        case .happy, .annoyed, .sad, .exhausted:
+            return !engine.currentState.isRestState
         }
     }
 
     var forceAnimationHint: some View {
         let hint: String
         switch engine.currentState {
-        case .idle:
-            hint = "Dari idle: happy / annoyed / sad / exhausted tersedia"
+        case .idle, .warmup, .pushup, .starJump:
+            hint = "Dari rest: happy / annoyed / sad / exhausted tersedia"
         case .walking:
-            hint = "Sedang walking — tunggu selesai, idle & reaksi diblokir"
+            hint = "Sedang walking — tunggu selesai, rest & reaksi diblokir"
         case .happy, .annoyed, .sad, .exhausted:
-            hint = "Animasi reaksi aktif — tunggu auto-return ke idle (3 detik)"
+            hint = "Animasi reaksi aktif — tunggu auto-return ke rest (3 detik)"
         }
         return Text(hint)
             .font(.caption)

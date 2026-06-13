@@ -54,9 +54,7 @@ extension CatDemoView {
                 Text("Walking")
                     .font(.subheadline)
                     .fontWeight(.medium)
-                Text(engine.isWalkingEnabled
-                     ? "Aktif — kucing jalan di idle"
-                     : "Nonaktif — kucing diam (selesaikan langkah dulu)")
+                Text(walkingStatusText)
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
             }
@@ -75,6 +73,8 @@ extension CatDemoView {
                     )
             }
             .buttonStyle(PlainButtonStyle())
+            .disabled(!CatFeatureFlags.autoWalkingEnabled)
+            .opacity(CatFeatureFlags.autoWalkingEnabled ? 1.0 : 0.4)
         }
         .padding(.vertical, 4)
         .padding(.horizontal, 12)
@@ -82,6 +82,15 @@ extension CatDemoView {
             RoundedRectangle(cornerRadius: 8)
                 .fill(Color.gray.opacity(0.06))
         )
+    }
+
+    private var walkingStatusText: String {
+        guard CatFeatureFlags.autoWalkingEnabled else {
+            return "Dikunci — set CatFeatureFlags.autoWalkingEnabled = true untuk memakai"
+        }
+        return engine.isWalkingEnabled
+            ? "Aktif — kucing jalan saat rest"
+            : "Nonaktif — kucing diam"
     }
 
     var voucherSection: some View {
@@ -95,12 +104,12 @@ extension CatDemoView {
                     DemoButtonLabel(
                         text: "Simulasi Saat Mencapai Stress Level Maximum",
                         icon: "envelope.fill",
-                        color: engine.currentState != .idle
-                            ? .secondary
-                            : .orange
+                        color: engine.currentState.isRestState
+                            ? .orange
+                            : .secondary
                     )
                 }
-                .disabled(engine.currentState != .idle)
+                .disabled(!engine.currentState.isRestState)
             }
         }
     }

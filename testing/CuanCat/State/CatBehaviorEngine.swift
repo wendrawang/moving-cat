@@ -6,18 +6,16 @@ import UIKit
 // MARK: - Cat Behavior Engine
 //
 // Central orchestrator: owns state machine, runs timers, publishes state.
-// Extensions:
-//   - CatBehaviorEngine+PublicAPI.swift    (transaction, voucher, drag, dismiss)
-//   - CatBehaviorEngine+StateTransition.swift (forceState, processEvent, snap)
-//   - CatBehaviorEngine+SideEffects.swift  (stress, voucher checks, haptic)
-//   - CatBehaviorEngine+Timers.swift       (idle, loading, animation timers)
-//   - CatBehaviorEngine+Walk.swift         (walk cycle, edge logic)
+// Extensions: +PublicAPI (transaction, voucher), +Drag (drag, dismiss, bring back),
+// +StateTransition (forceState, processEvent), +SideEffects (stress, haptic),
+// +Timers (idle, loading, animation), +Walk (walk cycle, edge logic)
 
 final class CatBehaviorEngine: ObservableObject {
 
     // MARK: - Published State
 
-    @Published private(set) var currentState: CatState = .idle
+    /// State awal LANGSUNG acak dari restPool (warmup/pushup/starJump) — bukan idle.
+    @Published private(set) var currentState: CatState = CatState.randomRest()
     @Published private(set) var walkDirection: CatDirection = .right
     @Published var catPositionX: CGFloat = 0
     @Published var catPositionY: CGFloat = 0
@@ -117,8 +115,14 @@ final class CatBehaviorEngine: ObservableObject {
         self.catPositionX = defaultHomeX
         self.catPositionY = defaultHomeY
 
+        // State awal ditarik dari shuffle-bag state machine — acak, tapi rotasi
+        // berikutnya dijamin menampilkan KETIGA exercise (bukan random murni)
+        currentState = stateMachine.nextRestState()
+        stateMachine.applyTransition(
+            CatTransitionResult(newState: currentState, sideEffects: [])
+        )
+
         loadPersistedData()
-//        startIdleTimer()
         observeDayChange()
     }
     
@@ -158,12 +162,16 @@ final class CatBehaviorEngine: ObservableObject {
     }
 
     // MARK: - Walking Enable / Disable
+    // Default false (CatFeatureFlags). Logic walk utuh — aktifkan via setWalkingEnabled(true).
 
-    private(set) var isWalkingEnabled: Bool = true
+    private(set) var isWalkingEnabled: Bool = CatFeatureFlags.autoWalkingEnabled
 
     func setWalkingEnabled(_ enabled: Bool) {
-        isWalkingEnabled = enabled
-        if enabled { idleElapsedSeconds = 0 }
+        // Dikunci feature flag: selama autoWalkingEnabled = false, TIDAK ADA
+        // caller yang bisa menyalakan walking (ContentView/demo/integrasi).
+        // Untuk memakai walking lagi cukup set flag ke true.
+        isWalkingEnabled = enabled && CatFeatureFlags.autoWalkingEnabled
+        if isWalkingEnabled { idleElapsedSeconds = 0 }
     }
 
     // MARK: - Loading Type
@@ -189,6 +197,13 @@ final class CatBehaviorEngine: ObservableObject {
     func setIsVoucherOverlayVisible(_ visible: Bool) { isVoucherOverlayVisible = visible }
     func setIsPassportVisible(_ visible: Bool) { isPassportVisible = visible }
     func setIsDismissed(_ val: Bool) { isDismissed = val }
+
+    // MARK: - Display Animation
+
+    /// Animasi yang dirender — 1:1 dari state (rest state = exercise animation).
+    var displayAnimation: CatAnimationType {
+        currentState.animationType
+    }
 
     // MARK: - Mutable Setters
 

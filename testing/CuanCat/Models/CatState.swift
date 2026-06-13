@@ -4,14 +4,43 @@ import Foundation
 // MARK: - Cat State
 
 enum CatState: String, CaseIterable, Codable {
-    case idle
-    case walking
-    case annoyed       // transaksi gagal (variant 1)
-    case sad           // transaksi gagal (variant 2 — random 50/50 dengan annoyed)
+    case idle          // legacy rest — TIDAK muncul lagi, disimpan untuk kebutuhan mendatang
+    case warmup        // rest exercise (default pool)
+    case pushup        // rest exercise (default pool)
+    case starJump      // rest exercise (default pool)
+    case walking       // nonaktif by default (CatFeatureFlags.autoWalkingEnabled)
+    case annoyed       // reportError(_:)
+    case sad           // transactionFailed()
     case happy         // transaksi berhasil
     case exhausted     // loading > 10 detik
 
-    /// State yang auto-return ke idle setelah durasi
+    // MARK: - Rest Pool
+
+    /// State "diam" default — dipilih acak setiap kucing selesai dari state lain.
+    /// idle TIDAK termasuk pool: hanya fallback legacy.
+    static let restPool: [CatState] = [.warmup, .pushup, .starJump]
+
+    /// Pilih satu rest state secara acak (dipakai untuk state awal + semua
+    /// transisi yang dulunya kembali ke idle).
+    /// `excluding`: untuk rotasi otomatis — hasil dijamin BEDA dari exercise
+    /// yang sedang tampil agar selalu terlihat ganti animasi.
+    static func randomRest(excluding current: CatState? = nil) -> CatState {
+        let pool = restPool.filter { $0 != current }
+        return pool.randomElement() ?? .warmup
+    }
+
+    /// true untuk semua state "diam" (idle legacy + rest pool) — pengganti
+    /// pengecekan `== .idle` di transition rules dan demo panel.
+    var isRestState: Bool {
+        switch self {
+        case .idle, .warmup, .pushup, .starJump:
+            return true
+        default:
+            return false
+        }
+    }
+
+    /// State yang auto-return ke rest setelah durasi
     var isTransientReaction: Bool {
         switch self {
         case .annoyed, .sad, .happy, .exhausted:
@@ -21,11 +50,14 @@ enum CatState: String, CaseIterable, Codable {
         }
     }
 
-    // MARK: - USDC Animation Mapping
+    // MARK: - Animation Mapping
 
     var animationType: CatAnimationType {
         switch self {
         case .idle:      return .idle
+        case .warmup:    return .warmup
+        case .pushup:    return .pushup
+        case .starJump:  return .starJump
         case .walking:   return .walk
         case .annoyed:   return .annoyed
         case .sad:       return .sad
@@ -33,10 +65,13 @@ enum CatState: String, CaseIterable, Codable {
         case .exhausted: return .exhausted
         }
     }
-    
+
     var forceButtonName: String {
         switch self {
-        case .idle:      return "Idle"
+        case .idle:      return "Idle (Legacy)"
+        case .warmup:    return "Warmup"
+        case .pushup:    return "Push Up"
+        case .starJump:  return "Star Jump"
         case .walking:   return ""
         case .annoyed:   return "Simulasi Transaction Gagal (1)"
         case .sad:       return "Simulasi Transaction Gagal (2)"
@@ -44,9 +79,6 @@ enum CatState: String, CaseIterable, Codable {
         case .exhausted: return "Simulasi Loading Lebih dari 10s"
         }
     }
-
-    /// Semua animasi loop
-    var usdcAnimationLoops: Bool { true }
 }
 
 // MARK: - Walking Direction
