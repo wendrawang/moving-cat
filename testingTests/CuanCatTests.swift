@@ -68,6 +68,22 @@ final class CatAssetManifestTests: XCTestCase {
     }
 }
 
+final class CatErrorMappingTests: XCTestCase {
+
+    // HTTP status code → CatTransactionError (Int.catError)
+    func testHttpStatusKeCatError() {
+        XCTAssertEqual(504.catError, .gatewayTimeout)
+        XCTAssertEqual(500.catError, .serverError)
+        XCTAssertEqual(502.catError, .serverError)
+        XCTAssertEqual(503.catError, .serverError)
+        XCTAssertEqual(400.catError, .clientError)
+        XCTAssertEqual(401.catError, .clientError)
+        XCTAssertEqual(404.catError, .clientError)
+        XCTAssertEqual(200.catError, .unknown)
+        XCTAssertEqual(302.catError, .unknown)
+    }
+}
+
 final class CatStateMachineTests: XCTestCase {
 
     // reportError → event transactionFailed → state annoyed

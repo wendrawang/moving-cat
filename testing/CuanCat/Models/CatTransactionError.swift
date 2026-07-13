@@ -29,3 +29,23 @@ public enum CatTransactionError {
     /// Error tidak terklasifikasi.
     case unknown
 }
+
+// MARK: - HTTP Status Code Mapping
+//
+// Helper agar service luar bisa langsung mapping HTTP status → error:
+//   CatOverlayManager.shared.reportError(response.statusCode.catError)
+
+extension Int {
+    var catError: CatTransactionError {
+        if self == 504 {
+            return .gatewayTimeout
+        }
+        if self != 504 && (500...599).contains(self) {
+            return .serverError
+        }
+        if (400...499).contains(self) {
+            return .clientError
+        }
+        return .unknown
+    }
+}

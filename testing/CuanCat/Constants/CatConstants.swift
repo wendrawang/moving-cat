@@ -45,7 +45,7 @@ enum CatTimingConstants {
 
     /// User AFK (tanpa sentuhan apa pun di layar) → kucing muncul di
     /// spotlight (seconds). Countdown di-restart setiap ada sentuhan.
-    static let afkAppearThreshold: TimeInterval = 5.0
+    static let afkAppearThreshold: TimeInterval = 8.0
 
     /// Durasi fade-in kemunculan kucing + sorot lampu di spotlight (seconds)
     static let spotlightAppearDuration: TimeInterval = 0.3
