@@ -27,6 +27,7 @@ extension CatBehaviorEngine {
             // Demo: tampilkan langsung di spotlight (looping exercise).
             showInSpotlight()
             startIdleTimer()
+            showStageLabelThenHide()
         case .walking:
             startWalkCycle()
         case .happy:

@@ -97,20 +97,24 @@ struct CatContainerView: View {
     }
 
     // MARK: - Spotlight Stage Label Layer
-    // Label kecil "panggung" di bawah kucing (playful).
+    // "NOW PERFORMING / CuanCat" — hanya saat kemunculan AFK, auto-hilang.
 
     private var spotlightStageLabelLayer: some View {
-        Text(CatStrings.spotlightStageLabel)
-            .font(.system(size: 15, weight: .semibold, design: .rounded))
-            .foregroundColor(.white)
-            .shadow(color: Color.black.opacity(0.5), radius: 4, x: 0, y: 1)
-            .opacity(self.engine.isSpotlightPresent ? 0.92 : 0)
-            .position(
-                x: self.engine.spotlightX,
-                y: self.engine.spotlightY
-                    + CatLayoutConstants.avatarSize * 0.5 + 18
-            )
-            .allowsHitTesting(false)
+        VStack(spacing: 2) {
+            Text(CatStrings.stagePerformingCaption)
+                .font(.system(size: 10, weight: .semibold, design: .rounded))
+                .foregroundColor(Color.white.opacity(0.7))
+            Text(CatStrings.stageName)
+                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .foregroundColor(.white)
+        }
+        .shadow(color: Color.black.opacity(0.5), radius: 4, x: 0, y: 1)
+        .opacity(self.engine.isStageLabelVisible ? 1 : 0)
+        .position(
+            x: self.engine.spotlightX,
+            y: self.engine.spotlightY + CatLayoutConstants.avatarSize * 0.5 + 22
+        )
+        .allowsHitTesting(false)
     }
 
     // MARK: - Cat Layer

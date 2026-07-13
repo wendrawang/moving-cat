@@ -103,6 +103,35 @@ extension CatBehaviorEngine {
         CatAudioManager.shared.play(.idle)
         idleElapsedSeconds = 0
         startIdleTimer()
+        showStageLabelThenHide()
+    }
+
+    // MARK: - Stage Label ("Now Performing", hanya kemunculan AFK)
+
+    /// Tampilkan label lalu auto-hilang setelah stageLabelDuration.
+    /// Kucing tetap di spotlight looping setelah label hilang.
+    func showStageLabelThenHide() {
+        stageLabelTimerCancellable?.cancel()
+        withAnimation(.easeOut(duration: 0.35)) { self.setStageLabelVisible(true) }
+        stageLabelTimerCancellable = Just(())
+            .delay(
+                for: .seconds(CatTimingConstants.stageLabelDuration),
+                scheduler: DispatchQueue.main
+            )
+            .sink { [weak self] _ in
+                withAnimation(.easeIn(duration: 0.4)) {
+                    self?.setStageLabelVisible(false)
+                }
+            }
+    }
+
+    /// Sembunyikan label langsung (dipakai saat reaction / kucing hide).
+    func hideStageLabel() {
+        stageLabelTimerCancellable?.cancel()
+        stageLabelTimerCancellable = nil
+        if isStageLabelVisible {
+            withAnimation(.easeIn(duration: 0.2)) { self.setStageLabelVisible(false) }
+        }
     }
 
     // MARK: - Appear (reaction)
@@ -112,6 +141,8 @@ extension CatBehaviorEngine {
     func snapToSpotlightForReaction() {
         guard !isDragging, !isDismissed else { return }
         showInSpotlight()
+        // Reaction bukan "performance" idle → jangan tampilkan label panggung.
+        hideStageLabel()
     }
 
     // MARK: - Show / Hide Core
@@ -149,6 +180,7 @@ extension CatBehaviorEngine {
         }
         stopIdleTimer()
         cancelPendingAnimations()
+        hideStageLabel()
         CatAudioManager.shared.stopLoop()
         if isIdleAnimationEnabled { startAfkTimer() }
     }

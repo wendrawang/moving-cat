@@ -25,6 +25,7 @@ extension CatBehaviorEngine {
         loadingTimerCancellable?.cancel()
         animationTimerCancellable?.cancel()
         afkTimerCancellable?.cancel()
+        stageLabelTimerCancellable?.cancel()
 
         if let observer = dayChangeObserver {
             NotificationCenter.default.removeObserver(observer)

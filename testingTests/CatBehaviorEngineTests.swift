@@ -153,6 +153,36 @@ final class CatBehaviorEngineTests: XCTestCase {
         XCTAssertFalse(engine.isSpotlightPresent)
     }
 
+    // MARK: - Stage Label ("Now Performing")
+
+    // Kemunculan AFK → label "Now Performing" tampil
+    func testLabelMunculSaatAfk() {
+        engine.appearForIdle()
+        XCTAssertTrue(engine.isStageLabelVisible)
+    }
+
+    // Reaction (dari sembunyi) → label TIDAK muncul (bukan performance idle)
+    func testLabelTidakMunculSaatReaction() {
+        engine.handleTransactionSuccess()
+        XCTAssertTrue(engine.isSpotlightPresent)
+        XCTAssertFalse(engine.isStageLabelVisible)
+    }
+
+    // Label sedang tampil lalu ada reaction → label langsung hilang
+    func testLabelHilangSaatReaction() {
+        engine.appearForIdle()
+        XCTAssertTrue(engine.isStageLabelVisible)
+        engine.handleTransactionSuccess()
+        XCTAssertFalse(engine.isStageLabelVisible)
+    }
+
+    // Kucing sembunyi → label ikut hilang
+    func testLabelHilangSaatKucingSembunyi() {
+        engine.appearForIdle()
+        engine.hideFromSpotlight()
+        XCTAssertFalse(engine.isStageLabelVisible)
+    }
+
     // MARK: - Spotlight Idle Enable / Disable
 
     // Default engine mengikuti feature flag (produksi: false = off)

@@ -29,11 +29,13 @@ final class CatBehaviorEngine: ObservableObject {
     @Published var dragOffsetX: CGFloat = 0
     @Published var dragOffsetY: CGFloat = 0
 
-    /// Kucing sedang tampil di spotlight (tengah layar + sorot lampu).
-    /// DEFAULT false = kucing sembunyi. Menjadi true saat user AFK
-    /// (afkAppearThreshold) atau saat ada reaction (transaksi/loading).
-    /// Kembali false saat user menyentuh layar di luar kucing.
+    /// Kucing sedang tampil di spotlight. DEFAULT false = sembunyi. True saat
+    /// user AFK atau ada reaction; false saat user menyentuh di luar kucing.
     @Published private(set) var isSpotlightPresent: Bool = false
+
+    /// Label "Now Performing" — hanya muncul saat kemunculan AFK (bukan
+    /// reaction), lalu auto-hilang setelah stageLabelDuration.
+    @Published private(set) var isStageLabelVisible: Bool = false
 
     // MARK: - Home Position
 
@@ -51,6 +53,7 @@ final class CatBehaviorEngine: ObservableObject {
     var loadingTimerCancellable: AnyCancellable?
     var animationTimerCancellable: AnyCancellable?
     var afkTimerCancellable: AnyCancellable?
+    var stageLabelTimerCancellable: AnyCancellable?
     var dayChangeObserver: Any?
 
     var idleTimerReady: Bool = false
@@ -120,8 +123,7 @@ final class CatBehaviorEngine: ObservableObject {
         self.screenWidth = bounds.width
         self.screenHeight = bounds.height
 
-        // Kucing default sembunyi & muncul di spotlight (tengah layar),
-        // jadi posisi awal langsung di tengah — bukan pojok kanan-bawah.
+        // Posisi awal langsung di spotlight (tengah) — bukan pojok.
         let spotlightPositionX = bounds.width * CatLayoutConstants.spotlightXRatio
         let spotlightPositionY = bounds.height * CatLayoutConstants.spotlightYRatio
         self.homePositionX = spotlightPositionX
@@ -129,8 +131,8 @@ final class CatBehaviorEngine: ObservableObject {
         self.catPositionX = spotlightPositionX
         self.catPositionY = spotlightPositionY
 
-        // State awal ditarik dari shuffle-bag state machine — acak, tapi rotasi
-        // berikutnya dijamin menampilkan KETIGA exercise (bukan random murni)
+        // State awal dari shuffle-bag — acak tapi rotasi berikutnya dijamin
+        // menampilkan KETIGA exercise (bukan random murni).
         currentState = stateMachine.nextRestState()
         stateMachine.applyTransition(
             CatTransitionResult(newState: currentState, sideEffects: [])
@@ -140,9 +142,8 @@ final class CatBehaviorEngine: ObservableObject {
         observeDayChange()
     }
     
-    /// Dipanggil saat frame pertama animasi siap. Kucing TIDAK langsung
-    /// tampil — hanya mulai menghitung AFK. Setelah afkAppearThreshold
-    /// tanpa sentuhan, kucing muncul di spotlight (lihat +Spotlight).
+    /// Frame pertama siap. Kucing TIDAK langsung tampil — hanya mulai
+    /// menghitung AFK (lihat +Spotlight).
     func markReadyAndStartTimer() {
         guard !idleTimerReady else { return }
         idleTimerReady = true
@@ -174,16 +175,14 @@ final class CatBehaviorEngine: ObservableObject {
     private(set) var isWalkingEnabled: Bool = CatFeatureFlags.autoWalkingEnabled
 
     func setWalkingEnabled(_ enabled: Bool) {
-        // Dikunci feature flag: selama autoWalkingEnabled = false, TIDAK ADA
-        // caller yang bisa menyalakan walking (ContentView/demo/integrasi).
-        // Untuk memakai walking lagi cukup set flag ke true.
+        // Dikunci feature flag: selama autoWalkingEnabled = false, tidak ada
+        // caller yang bisa menyalakan walking. Set flag true untuk mengaktifkan.
         isWalkingEnabled = enabled && CatFeatureFlags.autoWalkingEnabled
         if isWalkingEnabled { idleElapsedSeconds = 0 }
     }
 
     // MARK: - Spotlight Idle Enable / Disable
-    // Toggle per halaman via setIdleAnimationEnabled (+Spotlight). Kontrol
-    // kemunculan otomatis AFK; reaction tetap muncul walau false.
+    // Toggle per halaman via setIdleAnimationEnabled (+Spotlight). Reaction tetap muncul.
     var isIdleAnimationEnabled: Bool = CatFeatureFlags.idleAnimationEnabledByDefault
 
     // MARK: - Loading Type
@@ -210,6 +209,7 @@ final class CatBehaviorEngine: ObservableObject {
     func setIsPassportVisible(_ visible: Bool) { isPassportVisible = visible }
     func setIsDismissed(_ dismissed: Bool) { isDismissed = dismissed }
     func setSpotlightPresent(_ present: Bool) { isSpotlightPresent = present }
+    func setStageLabelVisible(_ visible: Bool) { isStageLabelVisible = visible }
 
     // MARK: - Display Animation
 

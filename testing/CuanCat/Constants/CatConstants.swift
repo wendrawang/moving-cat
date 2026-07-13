@@ -21,8 +21,9 @@ enum CatFeatureFlags {
 // MARK: - Copy / Strings
 
 enum CatStrings {
-    /// Label kecil "panggung" di bawah kucing saat di spotlight (playful).
-    static let spotlightStageLabel: String = "⭐ CuanCat ⭐"
+    /// Label "panggung" di bawah kucing saat kemunculan AFK (dua baris).
+    static let stagePerformingCaption: String = "NOW PERFORMING"
+    static let stageName: String = "CuanCat"
 }
 
 // MARK: - Timing Constants
@@ -52,6 +53,10 @@ enum CatTimingConstants {
 
     /// Durasi fade-out saat kucing sembunyi dari spotlight (seconds)
     static let spotlightHideDuration: TimeInterval = 0.2
+
+    /// Berapa lama label "Now Performing" tampil sebelum auto-hilang (seconds).
+    /// Kucing tetap di spotlight looping setelah label hilang.
+    static let stageLabelDuration: TimeInterval = 3.0
 
     /// Walking → back to idle threshold (seconds)
     static let walkToIdleThreshold: TimeInterval = 45.0
