@@ -18,6 +18,13 @@ enum CatFeatureFlags {
     static let idleAnimationEnabledByDefault: Bool = false
 }
 
+// MARK: - Copy / Strings
+
+enum CatStrings {
+    /// Label kecil "panggung" di bawah kucing saat di spotlight (playful).
+    static let spotlightStageLabel: String = "⭐ CuanCat ⭐"
+}
+
 // MARK: - Timing Constants
 
 enum CatTimingConstants {

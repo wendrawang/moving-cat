@@ -12,7 +12,9 @@ struct CatContainerView: View {
             spotlightScrimLayer
             spotlightHaloLayer
             spotlightBeamLayer
+            spotlightParticlesLayer
             catLayer
+            spotlightStageLabelLayer
             passportLayer
             voucherOverlayLayer
         }
@@ -74,6 +76,39 @@ struct CatContainerView: View {
                     - CatLayoutConstants.spotlightBeamHeight / 2
                     + CatLayoutConstants.avatarSize * 0.5
                     + CatLayoutConstants.spotlightHaloOffsetY
+            )
+            .allowsHitTesting(false)
+    }
+
+    // MARK: - Spotlight Particles Layer
+    // Debu cahaya melayang di dalam beam — biar panggung tidak sepi.
+
+    private var spotlightParticlesLayer: some View {
+        SpotlightParticlesView()
+            .opacity(self.engine.isSpotlightPresent ? 1 : 0)
+            .position(
+                x: self.engine.spotlightX,
+                y: self.engine.spotlightY
+                    - CatLayoutConstants.spotlightBeamHeight / 2
+                    + CatLayoutConstants.avatarSize * 0.5
+                    + CatLayoutConstants.spotlightHaloOffsetY
+            )
+            .allowsHitTesting(false)
+    }
+
+    // MARK: - Spotlight Stage Label Layer
+    // Label kecil "panggung" di bawah kucing (playful).
+
+    private var spotlightStageLabelLayer: some View {
+        Text(CatStrings.spotlightStageLabel)
+            .font(.system(size: 15, weight: .semibold, design: .rounded))
+            .foregroundColor(.white)
+            .shadow(color: Color.black.opacity(0.5), radius: 4, x: 0, y: 1)
+            .opacity(self.engine.isSpotlightPresent ? 0.92 : 0)
+            .position(
+                x: self.engine.spotlightX,
+                y: self.engine.spotlightY
+                    + CatLayoutConstants.avatarSize * 0.5 + 18
             )
             .allowsHitTesting(false)
     }
