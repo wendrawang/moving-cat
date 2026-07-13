@@ -82,75 +82,83 @@ final class CatBehaviorEngineTests: XCTestCase {
         XCTAssertTrue(engine.isDismissed)
     }
 
-    // MARK: - Spotlight
+    // MARK: - Spotlight Presence (AFK Appear / Tap Hide)
+
+    // DEFAULT: kucing sembunyi (belum ada AFK / reaction)
+    func testKucingDefaultSembunyi() {
+        XCTAssertFalse(engine.isSpotlightPresent)
+    }
+
+    // User AFK → kucing muncul di spotlight (tengah layar) + looping rest state
+    func testAfkMemunculkanKucingDiSpotlight() {
+        engine.appearForIdle()
+
+        XCTAssertTrue(engine.isSpotlightPresent)
+        XCTAssertTrue(CatState.restPool.contains(engine.currentState))
+        XCTAssertEqual(engine.catPositionX, engine.spotlightX, accuracy: 0.5)
+        XCTAssertEqual(engine.catPositionY, engine.spotlightY, accuracy: 0.5)
+    }
+
+    // appearForIdle idempotent — sudah tampil tidak berubah posisi/present
+    func testAppearForIdleTidakDobelSaatSudahTampil() {
+        engine.appearForIdle()
+        let stateWhileShown = engine.currentState
+        engine.appearForIdle()
+        XCTAssertTrue(engine.isSpotlightPresent)
+        XCTAssertEqual(engine.currentState, stateWhileShown)
+    }
 
     // Reaction (happy/sad/annoyed/exhausted) langsung tampil di spotlight
-    // (tengah layar) sejak muncul
     func testReactionLangsungMunculDiSpotlight() {
-        XCTAssertNotEqual(engine.catPositionX, engine.spotlightX, accuracy: 0.5)
+        XCTAssertFalse(engine.isSpotlightPresent)
 
         engine.handleTransactionSuccess()
 
         XCTAssertEqual(engine.currentState, .happy)
+        XCTAssertTrue(engine.isSpotlightPresent)
         XCTAssertEqual(engine.catPositionX, engine.spotlightX, accuracy: 0.5)
         XCTAssertEqual(engine.catPositionY, engine.spotlightY, accuracy: 0.5)
     }
 
-    // Rest state tanpa kegiatan → glide ke spotlight setelah threshold.
-    // Homebase ikut pindah ke spotlight.
-    func testRestTanpaKegiatanGlideKeSpotlight() {
-        XCTAssertNotEqual(engine.catPositionX, engine.spotlightX, accuracy: 0.5)
+    // Menyentuh layar di LUAR kucing → kucing sembunyi
+    func testTapDiLuarKucingMenyembunyikan() {
+        engine.appearForIdle()
+        XCTAssertTrue(engine.isSpotlightPresent)
 
-        engine.glideToSpotlightIfIdle(
-            elapsed: CatTimingConstants.idleToSpotlightThreshold
-        )
+        engine.hideFromSpotlight()
 
-        XCTAssertEqual(engine.catPositionX, engine.spotlightX, accuracy: 0.5)
-        XCTAssertEqual(engine.catPositionY, engine.spotlightY, accuracy: 0.5)
-        XCTAssertEqual(engine.homePositionX, engine.spotlightX, accuracy: 0.5)
-        XCTAssertEqual(engine.homePositionY, engine.spotlightY, accuracy: 0.5)
+        XCTAssertFalse(engine.isSpotlightPresent)
     }
 
-    // Belum melewati threshold → tetap di posisi semula
-    func testGlideTidakJalanSebelumThreshold() {
-        let startX = engine.catPositionX
-        engine.glideToSpotlightIfIdle(
-            elapsed: CatTimingConstants.idleToSpotlightThreshold - 1
-        )
-        XCTAssertEqual(engine.catPositionX, startX, accuracy: 0.5)
+    // Menyentuh kucing (isOnCat = true) → TIDAK menyembunyikan
+    func testTapPadaKucingTidakMenyembunyikan() {
+        engine.appearForIdle()
+        engine.registerUserActivity(isOnCat: true)
+        XCTAssertTrue(engine.isSpotlightPresent)
     }
 
-    // Sedang loading = ada kegiatan → tidak glide ke spotlight
-    func testGlideTidakJalanSaatLoading() {
-        let startX = engine.catPositionX
-        engine.handleLoadingStarted(.silent)
-        engine.glideToSpotlightIfIdle(
-            elapsed: CatTimingConstants.idleToSpotlightThreshold
-        )
-        XCTAssertEqual(engine.catPositionX, startX, accuracy: 0.5)
-    }
-
-    // Kucing dibuang (dismiss) → tidak glide ke spotlight
-    func testGlideTidakJalanSaatDismissed() {
+    // Kucing dibuang (dismiss) → sembunyi & TIDAK muncul lagi via AFK
+    func testDismissMenyembunyikanDanTidakMunculViaAfk() {
+        engine.appearForIdle()
         engine.dismiss()
-        let startX = engine.catPositionX
-        engine.glideToSpotlightIfIdle(
-            elapsed: CatTimingConstants.idleToSpotlightThreshold
-        )
-        XCTAssertEqual(engine.catPositionX, startX, accuracy: 0.5)
+
+        XCTAssertTrue(engine.isDismissed)
+        XCTAssertFalse(engine.isSpotlightPresent)
+
+        // AFK tidak boleh memunculkan kucing yang sudah dibuang
+        engine.appearForIdle()
+        XCTAssertFalse(engine.isSpotlightPresent)
     }
 
-    // bringBack → langsung muncul di homebase kanan-bawah dengan rest state acak
-    func testBringBackInstanDiHomebaseKananBawah() {
+    // bringBack (shake) → muncul lagi di spotlight (tengah), bukan pojok
+    func testBringBackMunculDiSpotlight() {
         engine.dismiss()
         engine.bringBack()
 
-        let expectedX = engine.screenWidth * CatLayoutConstants.defaultStartXRatio
-        let expectedY = engine.screenHeight - CatLayoutConstants.bottomPadding
-
         XCTAssertFalse(engine.isDismissed)
+        XCTAssertTrue(engine.isSpotlightPresent)
         XCTAssertTrue(CatState.restPool.contains(engine.currentState))
-        XCTAssertEqual(engine.catPositionX, expectedX, accuracy: 0.5)
-        XCTAssertEqual(engine.catPositionY, expectedY, accuracy: 0.5)
+        XCTAssertEqual(engine.catPositionX, engine.spotlightX, accuracy: 0.5)
+        XCTAssertEqual(engine.catPositionY, engine.spotlightY, accuracy: 0.5)
     }
 }

@@ -7,13 +7,24 @@ final class PassThroughWindow: UIWindow {
 
     var interactiveRectProvider: (() -> CGRect)?
     var isModalVisibleProvider: (() -> Bool)?
+    /// Dipanggil untuk SETIAP sentuhan (Bool = apakah mengenai kucing).
+    /// Dipakai engine untuk reset AFK timer + sembunyikan kucing saat
+    /// user menyentuh di luar kucing.
+    var onUserInteraction: ((_ isOnCat: Bool) -> Void)?
     /// Set ke hosting.view — dipakai untuk alpha hit test pixel-level.
     weak var alphaHitTestView: UIView?
 
     override var canBecomeFirstResponder: Bool { true }
 
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        guard let hitView = super.hitTest(point, with: event) else {
+        let hitView = super.hitTest(point, with: event)
+
+        // Observasi aktivitas user untuk SEMUA sentuhan dalam bounds window.
+        let catRect = interactiveRectProvider?() ?? .zero
+        let isOnCat = catRect.contains(point)
+        onUserInteraction?(isOnCat)
+
+        guard let hitView = hitView else {
             return nil
         }
 
@@ -25,11 +36,9 @@ final class PassThroughWindow: UIWindow {
             return hitView
         }
 
-        guard let rectProvider = interactiveRectProvider else {
-            return nil
-        }
-        let catRect = rectProvider()
-        guard catRect.contains(point) else {
+        // Bukan di kucing (termasuk saat kucing sembunyi → rect .zero) →
+        // teruskan touch ke app di bawah.
+        guard isOnCat else {
             return nil
         }
 
@@ -72,6 +81,7 @@ final class PassThroughWindow: UIWindow {
     deinit {
         interactiveRectProvider = nil
         isModalVisibleProvider = nil
+        onUserInteraction = nil
     }
 }
 

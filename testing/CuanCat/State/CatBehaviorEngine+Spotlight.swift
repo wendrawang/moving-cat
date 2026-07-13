@@ -1,29 +1,18 @@
+import Combine
 import CoreGraphics
 import Foundation
 import SwiftUI
 
-// MARK: - Spotlight Glide Animation Snapshot
-
-/// Snapshot glide ke spotlight yang sedang berjalan — dipakai interpolasi
-/// manual (hit testing + interrupt drag) selama animasi SwiftUI jalan.
-struct SpotlightGlideAnimation {
-    let startPositionX: CGFloat
-    let startPositionY: CGFloat
-    let startTime: Date
-    let duration: TimeInterval
-}
-
-// MARK: - Spotlight Positioning
+// MARK: - Spotlight Presence (AFK Appear / Tap Hide)
 //
-// "Spotlight" = panggung tengah layar. Dua jalur menuju spotlight:
-//   1. Rest states (warmup/pushup/starJump): jika TIDAK ada kegiatan apa pun
-//      (idle >= idleToSpotlightThreshold, tanpa loading/drag/dismiss),
-//      kucing glide halus ke tengah.
-//   2. Reaction states (annoyed/sad/happy/exhausted): langsung tampil di
-//      spotlight sejak muncul — snap instan, tanpa glide.
-//
-// Homebase ikut pindah ke spotlight sehingga sistem lain (walk, drag clamp,
-// setHomeBase side effect) tetap konsisten.
+// Model "screensaver":
+//   - Kucing DEFAULT sembunyi (isSpotlightPresent = false).
+//   - User AFK (tanpa sentuhan) >= afkAppearThreshold → kucing muncul di
+//     spotlight (tengah layar + sorot lampu), lalu looping 3 exercise
+//     (warmup/pushup/starJump) terus lewat rotasi idle timer.
+//   - User menyentuh layar di luar kucing → kucing sembunyi lagi, AFK
+//     timer restart (muncul lagi setelah AFK berikutnya).
+//   - Reaction (transaksi sukses/gagal/exhausted) juga muncul di spotlight.
 
 extension CatBehaviorEngine {
 
@@ -32,95 +21,113 @@ extension CatBehaviorEngine {
     var spotlightX: CGFloat { screenWidth * CatLayoutConstants.spotlightXRatio }
     var spotlightY: CGFloat { screenHeight * CatLayoutConstants.spotlightYRatio }
 
-    /// catPositionX/Y sudah bernilai target BEGITU withAnimation dimulai,
-    /// jadi ini juga true selama glide berjalan — mencegah re-trigger per tick.
-    var isAtSpotlight: Bool {
-        abs(catPositionX - spotlightX) < 1.0
-            && abs(catPositionY - spotlightY) < 1.0
-    }
+    // MARK: - AFK Timer
 
-    // MARK: - Glide (rest state, tanpa kegiatan)
-
-    /// Dipanggil setiap idle tick. Glide hanya saat benar-benar tidak ada
-    /// kegiatan: rest state, tidak loading, tidak di-drag, tidak dismissed.
-    func glideToSpotlightIfIdle(elapsed: TimeInterval) {
-        guard elapsed >= CatTimingConstants.idleToSpotlightThreshold,
-              currentState.isRestState,
-              !isLoadingActive,
-              !isDragging,
-              !isDismissed,
-              !isAtSpotlight
-        else { return }
-        glideToSpotlight()
-    }
-
-    private func glideToSpotlight() {
-        spotlightGlideAnimation = SpotlightGlideAnimation(
-            startPositionX: catPositionX,
-            startPositionY: catPositionY,
-            startTime: Date(),
-            duration: CatTimingConstants.spotlightGlideDuration
+    /// Mulai menghitung AFK. Setiap tick tanpa sentuhan menambah counter;
+    /// begitu mencapai threshold dan kucing masih sembunyi → muncul.
+    func startAfkTimer() {
+        afkElapsedSeconds = 0
+        afkTimerCancellable?.cancel()
+        afkTimerCancellable = Timer.publish(
+            every: CatTimingConstants.idleTickInterval,
+            on: .main, in: .common
         )
-
-        withAnimation(
-            .easeInOut(duration: CatTimingConstants.spotlightGlideDuration)
-        ) {
-            self.catPositionX = self.spotlightX
-            self.catPositionY = self.spotlightY
+        .autoconnect()
+        .sink { [weak self] _ in
+            guard let self = self else { return }
+            self.afkElapsedSeconds += CatTimingConstants.idleTickInterval
+            if self.afkElapsedSeconds >= CatTimingConstants.afkAppearThreshold {
+                self.appearForIdle()
+            }
         }
-        updateHomeBase()
     }
 
-    // MARK: - Snap (reaction state, sejak muncul)
+    func stopAfkTimer() {
+        afkTimerCancellable?.cancel()
+        afkTimerCancellable = nil
+        afkElapsedSeconds = 0
+    }
 
-    /// Reaction langsung muncul di spotlight. Skip saat kucing sedang
-    /// dipegang (drag) atau sudah dibuang — jangan rebut posisi dari user.
+    // MARK: - User Activity (dipanggil dari window untuk SETIAP sentuhan)
+
+    /// `isOnCat`: true jika sentuhan mengenai kucing (buka passport/drag),
+    /// false jika di area lain (→ sembunyikan kucing).
+    func registerUserActivity(isOnCat: Bool) {
+        afkElapsedSeconds = 0
+
+        guard isSpotlightPresent, !isOnCat else { return }
+        // Jangan sembunyikan saat modal terbuka (passport/voucher) — modal
+        // punya cara dismiss sendiri.
+        guard !isPassportVisible, !isVoucherOverlayVisible else { return }
+
+        // Ubah @Published di luar hitTest pass (hindari mutasi saat layout).
+        DispatchQueue.main.async { [weak self] in
+            self?.hideFromSpotlight()
+        }
+    }
+
+    // MARK: - Appear (idle / AFK)
+
+    /// Kucing muncul di spotlight karena user AFK, lalu looping exercise.
+    func appearForIdle() {
+        guard !isDismissed, !isSpotlightPresent else { return }
+        showInSpotlight()
+
+        // Mulai fresh dari rest state acak + rotasi 3 exercise.
+        let restState = stateMachine.nextRestState()
+        setCurrentState(restState)
+        stateMachine.applyTransition(
+            CatTransitionResult(newState: restState, sideEffects: [])
+        )
+        CatAudioManager.shared.play(.idle)
+        idleElapsedSeconds = 0
+        startIdleTimer()
+    }
+
+    // MARK: - Appear (reaction)
+
+    /// Reaction (happy/sad/annoyed/exhausted) tampil di spotlight sejak
+    /// muncul. Skip saat kucing sedang di-drag atau sudah dibuang.
     func snapToSpotlightForReaction() {
         guard !isDragging, !isDismissed else { return }
-        spotlightGlideAnimation = nil
-        var transaction = SwiftUI.Transaction()
-        transaction.disablesAnimations = true
-        withTransaction(transaction) {
-            self.catPositionX = self.spotlightX
-            self.catPositionY = self.spotlightY
+        showInSpotlight()
+    }
+
+    // MARK: - Show / Hide Core
+
+    /// Pindahkan kucing ke spotlight (instan, tanpa animasi posisi) lalu
+    /// fade-in presence + sorot lampu. Hentikan AFK timer selama tampil.
+    func showInSpotlight() {
+        stopAfkTimer()
+
+        var positionTransaction = SwiftUI.Transaction()
+        positionTransaction.disablesAnimations = true
+        withTransaction(positionTransaction) {
+            self.setCatPositionX(self.spotlightX)
+            self.setCatPositionY(self.spotlightY)
         }
         updateHomeBase()
+
+        if !isSpotlightPresent {
+            withAnimation(
+                .easeOut(duration: CatTimingConstants.spotlightAppearDuration)
+            ) {
+                self.setSpotlightPresent(true)
+            }
+        }
     }
 
-    // MARK: - Glide Interpolation (hit testing + interrupt)
-
-    /// Posisi visual saat glide masih berjalan; nil jika tidak ada glide
-    /// aktif (posisi visual = catPositionX/Y biasa). Curve mengaproksimasi
-    /// easeInOut agar interactive rect mengikuti posisi visual.
-    var spotlightGlideVisualPosition: CGPoint? {
-        guard let glide = spotlightGlideAnimation, glide.duration > 0 else {
-            return nil
+    /// Sembunyikan kucing (fade-out), hentikan rotasi, mulai AFK timer lagi.
+    func hideFromSpotlight() {
+        guard isSpotlightPresent else { return }
+        withAnimation(
+            .easeIn(duration: CatTimingConstants.spotlightHideDuration)
+        ) {
+            self.setSpotlightPresent(false)
         }
-        let elapsedSeconds = Date().timeIntervalSince(glide.startTime)
-        let linearProgress = CGFloat(elapsedSeconds / glide.duration)
-        guard linearProgress < 1.0 else { return nil }
-        let inverseProgress = -2 * linearProgress + 2
-        let easedProgress: CGFloat = linearProgress < 0.5
-            ? 2 * linearProgress * linearProgress
-            : 1 - inverseProgress * inverseProgress / 2
-        return CGPoint(
-            x: glide.startPositionX
-                + (spotlightX - glide.startPositionX) * easedProgress,
-            y: glide.startPositionY
-                + (spotlightY - glide.startPositionY) * easedProgress
-        )
-    }
-
-    /// Drag dimulai di tengah glide → bekukan posisi di titik visual saat ini
-    /// supaya kucing tidak "lompat" ke target spotlight di bawah jari user.
-    func snapToCurrentGlidePosition() {
-        guard let visualPosition = spotlightGlideVisualPosition else { return }
-        spotlightGlideAnimation = nil
-        var transaction = SwiftUI.Transaction()
-        transaction.disablesAnimations = true
-        withTransaction(transaction) {
-            self.catPositionX = visualPosition.x
-            self.catPositionY = visualPosition.y
-        }
+        stopIdleTimer()
+        cancelPendingAnimations()
+        CatAudioManager.shared.stopLoop()
+        startAfkTimer()
     }
 }

@@ -80,7 +80,10 @@ final class CatOverlayManager {
         window.isHidden = false
 
         window.interactiveRectProvider = { [weak behaviorEngine] in
-            guard let engine = behaviorEngine, !engine.isDismissed else { return .zero }
+            guard let engine = behaviorEngine,
+                  !engine.isDismissed,
+                  engine.isSpotlightPresent
+            else { return .zero }
             let halfSize = CatLayoutConstants.avatarSize / 2
             return CGRect(
                 x: engine.currentVisualX - halfSize,
@@ -88,6 +91,10 @@ final class CatOverlayManager {
                 width: CatLayoutConstants.avatarSize,
                 height: CatLayoutConstants.avatarSize
             )
+        }
+
+        window.onUserInteraction = { [weak behaviorEngine] isOnCat in
+            behaviorEngine?.registerUserActivity(isOnCat: isOnCat)
         }
 
         window.isModalVisibleProvider = { [weak behaviorEngine] in

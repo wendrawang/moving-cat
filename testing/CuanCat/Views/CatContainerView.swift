@@ -9,11 +9,27 @@ struct CatContainerView: View {
 
     var body: some View {
         ZStack {
+            spotlightBeamLayer
             catLayer
             passportLayer
             voucherOverlayLayer
         }
         .edgesIgnoringSafeArea(.all)
+    }
+
+    // MARK: - Spotlight Beam Layer
+    // Sorot lampu di belakang kucing — muncul/hilang mengikuti presence.
+
+    private var spotlightBeamLayer: some View {
+        SpotlightBeamView()
+            .opacity(self.engine.isSpotlightPresent ? 1 : 0)
+            .position(
+                x: self.engine.spotlightX,
+                y: self.engine.spotlightY
+                    - CatLayoutConstants.spotlightBeamHeight / 2
+                    + CatLayoutConstants.avatarSize * 0.35
+            )
+            .allowsHitTesting(false)
     }
 
     // MARK: - Cat Layer
@@ -38,7 +54,10 @@ struct CatContainerView: View {
                 y: self.engine.dragOffsetY
             )
             .gesture(self.catGesture)
-            .opacity(self.engine.isDismissed ? 0 : 1)
+            .opacity(
+                (self.engine.isDismissed || !self.engine.isSpotlightPresent)
+                    ? 0 : 1
+            )
             .position(
                 x: self.engine.catPositionX,
                 y: self.engine.catPositionY

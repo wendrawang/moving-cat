@@ -29,13 +29,15 @@ enum CatTimingConstants {
     /// rotasi me-reset idle timer sehingga walking tidak akan pernah trigger.
     static let restRotationInterval: TimeInterval = 6.0
 
-    /// Rest tanpa kegiatan → glide ke spotlight (tengah layar) threshold (seconds).
-    /// ⚠ Harus < restRotationInterval — rotasi rest me-reset idle timer,
-    /// jadi threshold di atas 6s tidak akan pernah tercapai.
-    static let idleToSpotlightThreshold: TimeInterval = 3.0
+    /// User AFK (tanpa sentuhan apa pun di layar) → kucing muncul di
+    /// spotlight (seconds). Countdown di-restart setiap ada sentuhan.
+    static let afkAppearThreshold: TimeInterval = 5.0
 
-    /// Durasi glide rest state menuju spotlight (seconds)
-    static let spotlightGlideDuration: TimeInterval = 1.2
+    /// Durasi fade-in kemunculan kucing + sorot lampu di spotlight (seconds)
+    static let spotlightAppearDuration: TimeInterval = 0.3
+
+    /// Durasi fade-out saat kucing sembunyi dari spotlight (seconds)
+    static let spotlightHideDuration: TimeInterval = 0.2
 
     /// Walking → back to idle threshold (seconds)
     static let walkToIdleThreshold: TimeInterval = 45.0
@@ -80,10 +82,18 @@ enum CatLayoutConstants {
     static let defaultStartXRatio: CGFloat = 0.85
 
     /// Posisi spotlight — "panggung" tengah layar tempat kucing tampil.
-    /// Rest state glide ke sini saat tidak ada kegiatan; reaction state
-    /// (happy/sad/annoyed/exhausted) langsung muncul di sini.
+    /// Kucing default sembunyi; muncul di sini saat user AFK, reaction
+    /// (happy/sad/annoyed/exhausted) juga muncul di sini.
     static let spotlightXRatio: CGFloat = 0.5
     static let spotlightYRatio: CGFloat = 0.5
+
+    /// Dimensi efek sorot lampu (beam) di belakang kucing saat di spotlight.
+    /// Cone menyempit di atas, melebar ke bawah; floor glow di kaki kucing.
+    static let spotlightBeamTopWidth: CGFloat = 40.0
+    static let spotlightBeamBottomWidth: CGFloat = 260.0
+    static let spotlightBeamHeight: CGFloat = 300.0
+    static let spotlightFloorGlowWidth: CGFloat = 220.0
+    static let spotlightFloorGlowHeight: CGFloat = 60.0
     static let speechBubbleOffsetY: CGFloat = -50.0
     static let envelopeBadgeSize: CGFloat = 24.0
     static let passportCornerRadius: CGFloat = 20.0

@@ -18,7 +18,6 @@ extension CatBehaviorEngine {
         .sink { [weak self] _ in
             guard let self = self else { return }
             self.idleElapsedSeconds += CatTimingConstants.idleTickInterval
-            self.glideToSpotlightIfIdle(elapsed: self.idleElapsedSeconds)
             if !self.isWalkingEnabled,
                 self.idleElapsedSeconds >= CatTimingConstants.idleToWalkThreshold {
                 self.idleElapsedSeconds = 0

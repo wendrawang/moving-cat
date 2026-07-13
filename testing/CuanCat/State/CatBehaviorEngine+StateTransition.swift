@@ -24,7 +24,8 @@ extension CatBehaviorEngine {
 
         switch state {
         case .idle, .warmup, .pushup, .starJump:
-            updateHomeBase()
+            // Demo: tampilkan langsung di spotlight (looping exercise).
+            showInSpotlight()
             startIdleTimer()
         case .walking:
             startWalkCycle()
@@ -66,12 +67,9 @@ extension CatBehaviorEngine {
 
     // MARK: - Visual Position
 
-    /// Posisi visual X saat ini (memperhitungkan animasi walk / glide spotlight
-    /// yang sedang jalan). Digunakan PassThroughWindow untuk hit testing.
+    /// Posisi visual X saat ini (memperhitungkan animasi walk yang sedang
+    /// jalan). Digunakan PassThroughWindow untuk hit testing.
     var currentVisualX: CGFloat {
-        if let glide = spotlightGlideVisualPosition {
-            return glide.x
-        }
         guard currentState == .walking, walkAnimationDuration > 0 else {
             return catPositionX
         }
@@ -80,10 +78,9 @@ extension CatBehaviorEngine {
         return walkAnimationStartX + (walkTargetX - walkAnimationStartX) * progress
     }
 
-    /// Posisi visual Y — hanya glide spotlight yang menganimasikan Y.
-    var currentVisualY: CGFloat {
-        spotlightGlideVisualPosition?.y ?? catPositionY
-    }
+    /// Posisi visual Y — kucing spotlight tidak menganimasikan posisi Y
+    /// (muncul via fade), jadi cukup posisi published.
+    var currentVisualY: CGFloat { catPositionY }
 
     /// BUG-05 fix: gunakan withTransaction(disablesAnimations: true) untuk
     /// benar-benar membatalkan animasi SwiftUI yang sedang berjalan.

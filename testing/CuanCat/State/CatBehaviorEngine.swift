@@ -9,7 +9,7 @@ import UIKit
 // Extensions: +PublicAPI (transaction, voucher), +Drag (drag, dismiss, bring back),
 // +StateTransition (forceState, processEvent), +SideEffects (stress, haptic),
 // +Timers (idle, loading, animation), +Walk (walk cycle, edge logic),
-// +Spotlight (glide/snap ke tengah layar), +Lifecycle (persistence, day change)
+// +Spotlight (AFK appear/hide di tengah layar), +Lifecycle (day change)
 
 final class CatBehaviorEngine: ObservableObject {
 
@@ -29,6 +29,12 @@ final class CatBehaviorEngine: ObservableObject {
     @Published var dragOffsetX: CGFloat = 0
     @Published var dragOffsetY: CGFloat = 0
 
+    /// Kucing sedang tampil di spotlight (tengah layar + sorot lampu).
+    /// DEFAULT false = kucing sembunyi. Menjadi true saat user AFK
+    /// (afkAppearThreshold) atau saat ada reaction (transaksi/loading).
+    /// Kembali false saat user menyentuh layar di luar kucing.
+    @Published private(set) var isSpotlightPresent: Bool = false
+
     // MARK: - Home Position
 
     var homePositionX: CGFloat = 0
@@ -44,11 +50,16 @@ final class CatBehaviorEngine: ObservableObject {
     var idleTimerCancellable: AnyCancellable?
     var loadingTimerCancellable: AnyCancellable?
     var animationTimerCancellable: AnyCancellable?
+    var afkTimerCancellable: AnyCancellable?
     var dayChangeObserver: Any?
 
     var idleTimerReady: Bool = false
     var idleElapsedSeconds: TimeInterval = 0
     var loadingElapsedSeconds: TimeInterval = 0
+
+    /// Detik sejak sentuhan terakhir user (di mana pun). Di-reset setiap
+    /// registerUserActivity. Saat mencapai afkAppearThreshold → kucing muncul.
+    var afkElapsedSeconds: TimeInterval = 0
 
     // MARK: - Loading State
 
@@ -82,14 +93,6 @@ final class CatBehaviorEngine: ObservableObject {
     var walkAnimationStartTime: Date = Date()
     var walkAnimationDuration: TimeInterval = 0
 
-    // MARK: - Spotlight Glide State
-    // Snapshot glide ke spotlight yang sedang berjalan (nil = tidak ada glide).
-    // Dipakai interpolasi manual untuk hit testing — pola sama dengan
-    // walkAnimation* (posisi published langsung bernilai target,
-    // visual masih di tengah animasi).
-
-    var spotlightGlideAnimation: SpotlightGlideAnimation?
-
     // MARK: - Drag State
 
     var isDragging: Bool = false
@@ -117,12 +120,14 @@ final class CatBehaviorEngine: ObservableObject {
         self.screenWidth = bounds.width
         self.screenHeight = bounds.height
 
-        let defaultHomeX = bounds.width * CatLayoutConstants.defaultStartXRatio
-        let defaultHomeY = bounds.height - CatLayoutConstants.bottomPadding
-        self.homePositionX = defaultHomeX
-        self.homePositionY = defaultHomeY
-        self.catPositionX = defaultHomeX
-        self.catPositionY = defaultHomeY
+        // Kucing default sembunyi & muncul di spotlight (tengah layar),
+        // jadi posisi awal langsung di tengah — bukan pojok kanan-bawah.
+        let spotlightPositionX = bounds.width * CatLayoutConstants.spotlightXRatio
+        let spotlightPositionY = bounds.height * CatLayoutConstants.spotlightYRatio
+        self.homePositionX = spotlightPositionX
+        self.homePositionY = spotlightPositionY
+        self.catPositionX = spotlightPositionX
+        self.catPositionY = spotlightPositionY
 
         // State awal ditarik dari shuffle-bag state machine — acak, tapi rotasi
         // berikutnya dijamin menampilkan KETIGA exercise (bukan random murni)
@@ -135,11 +140,13 @@ final class CatBehaviorEngine: ObservableObject {
         observeDayChange()
     }
     
+    /// Dipanggil saat frame pertama animasi siap. Kucing TIDAK langsung
+    /// tampil — hanya mulai menghitung AFK. Setelah afkAppearThreshold
+    /// tanpa sentuhan, kucing muncul di spotlight (lihat +Spotlight).
     func markReadyAndStartTimer() {
         guard !idleTimerReady else { return }
         idleTimerReady = true
-        CatAudioManager.shared.play(.idle)
-        startIdleTimer()
+        startAfkTimer()
     }
 
     // MARK: - Persistence Loading
@@ -197,6 +204,7 @@ final class CatBehaviorEngine: ObservableObject {
     func setIsVoucherOverlayVisible(_ visible: Bool) { isVoucherOverlayVisible = visible }
     func setIsPassportVisible(_ visible: Bool) { isPassportVisible = visible }
     func setIsDismissed(_ dismissed: Bool) { isDismissed = dismissed }
+    func setSpotlightPresent(_ present: Bool) { isSpotlightPresent = present }
 
     // MARK: - Display Animation
 
