@@ -21,6 +21,25 @@ extension CatBehaviorEngine {
     var spotlightX: CGFloat { screenWidth * CatLayoutConstants.spotlightXRatio }
     var spotlightY: CGFloat { screenHeight * CatLayoutConstants.spotlightYRatio }
 
+    // MARK: - Idle Enable / Disable (per halaman)
+
+    /// Aktifkan/nonaktifkan kemunculan otomatis kucing saat AFK.
+    /// - true  : mulai hitung AFK lagi bila kucing sedang sembunyi.
+    /// - false : stop AFK; jika sedang looping (bukan mid-reaction) → sembunyikan.
+    func setSpotlightIdleEnabled(_ enabled: Bool) {
+        guard enabled != isSpotlightIdleEnabled else { return }
+        isSpotlightIdleEnabled = enabled
+
+        if enabled {
+            if !isSpotlightPresent && !isDismissed { startAfkTimer() }
+        } else {
+            stopAfkTimer()
+            if isSpotlightPresent && currentState.isRestState {
+                hideFromSpotlight()
+            }
+        }
+    }
+
     // MARK: - AFK Timer
 
     /// Mulai menghitung AFK. Setiap tick tanpa sentuhan menambah counter;
@@ -70,7 +89,9 @@ extension CatBehaviorEngine {
 
     /// Kucing muncul di spotlight karena user AFK, lalu looping exercise.
     func appearForIdle() {
-        guard !isDismissed, !isSpotlightPresent else { return }
+        guard isSpotlightIdleEnabled, !isDismissed, !isSpotlightPresent else {
+            return
+        }
         showInSpotlight()
 
         // Mulai fresh dari rest state acak + rotasi 3 exercise.
@@ -117,7 +138,8 @@ extension CatBehaviorEngine {
         }
     }
 
-    /// Sembunyikan kucing (fade-out), hentikan rotasi, mulai AFK timer lagi.
+    /// Sembunyikan kucing (fade-out), hentikan rotasi. AFK timer hanya
+    /// di-arm ulang jika idle-spotlight masih diizinkan (page aktif).
     func hideFromSpotlight() {
         guard isSpotlightPresent else { return }
         withAnimation(
@@ -128,6 +150,6 @@ extension CatBehaviorEngine {
         stopIdleTimer()
         cancelPendingAnimations()
         CatAudioManager.shared.stopLoop()
-        startAfkTimer()
+        if isSpotlightIdleEnabled { startAfkTimer() }
     }
 }

@@ -9,6 +9,12 @@ enum CatFeatureFlags {
     /// Logic walk TIDAK dihapus — set true (atau panggil
     /// CatOverlayManager.shared.setWalkingEnabled(true)) untuk mengaktifkan kembali.
     static let autoWalkingEnabled: Bool = false
+
+    /// Default apakah kucing boleh MUNCUL SENDIRI saat user AFK (looping
+    /// warmup/pushup/starJump). Mirip autoWalkingEnabled — atur per halaman
+    /// via CatOverlayManager.shared.setSpotlightIdleEnabled(true/false).
+    /// Reaction (transaksi sukses/gagal/exhausted) TETAP muncul walau ini false.
+    static let spotlightIdleEnabledByDefault: Bool = true
 }
 
 // MARK: - Timing Constants
@@ -81,11 +87,11 @@ enum CatLayoutConstants {
     static let dragTopMargin: CGFloat = 84.0
     static let defaultStartXRatio: CGFloat = 0.85
 
-    /// Posisi spotlight — "panggung" tengah layar tempat kucing tampil.
-    /// Kucing default sembunyi; muncul di sini saat user AFK, reaction
-    /// (happy/sad/annoyed/exhausted) juga muncul di sini.
+    /// Posisi spotlight — "panggung" tempat kucing tampil.
+    /// X di tengah; Y sedikit DI BAWAH tengah (0.57) supaya kucing terlihat
+    /// "berpijak" — bukan melayang di setengah layar.
     static let spotlightXRatio: CGFloat = 0.5
-    static let spotlightYRatio: CGFloat = 0.5
+    static let spotlightYRatio: CGFloat = 0.57
 
     /// Scrim gelap seluruh layar saat kucing di spotlight — bikin sorot
     /// lampu kelihatan walau UI app terang/putih (efek panggung teater).
@@ -93,6 +99,10 @@ enum CatLayoutConstants {
 
     /// Halo cahaya lembut di sekitar kucing (menembus scrim gelap).
     static let spotlightHaloDiameter: CGFloat = 340.0
+
+    /// Offset Y lingkaran cahaya (halo + beam) relatif titik kucing —
+    /// positif = turun. Bikin kucing benar-benar di TENGAH lingkaran cahaya.
+    static let spotlightHaloOffsetY: CGFloat = 28.0
 
     /// Dimensi efek sorot lampu (beam) di belakang kucing saat di spotlight.
     /// Cone menyempit di atas, melebar ke bawah; floor glow di kaki kucing.

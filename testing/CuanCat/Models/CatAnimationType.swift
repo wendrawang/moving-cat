@@ -13,10 +13,14 @@ enum CatAnimationType: String, CaseIterable {
     case happy
     case exhausted
 
+    /// Hanya rest exercise (warmup/pushup/starJump), idle, dan walk yang
+    /// LOOP. Reaction (annoyed/sad/happy/exhausted) main SEKALI saja.
     var loops: Bool {
         switch self {
-        case .exhausted: return false
-        default: return true
+        case .idle, .warmup, .pushup, .starJump, .walk:
+            return true
+        case .annoyed, .sad, .happy, .exhausted:
+            return false
         }
     }
 
@@ -27,9 +31,9 @@ enum CatAnimationType: String, CaseIterable {
         case .pushup:    return "Push up exercise, rest variant (LOOP)"
         case .starJump:  return "Star jump exercise, rest variant (LOOP)"
         case .walk:      return "Walking, flip horizontally for left (LOOP)"
-        case .annoyed:   return "Annoyed reaction, transaction failed (LOOP)"
-        case .sad:       return "Sad reaction, transaction failed variant (LOOP)"
-        case .happy:     return "Happy celebration, transaction success (LOOP)"
+        case .annoyed:   return "Annoyed reaction, transaction failed (ONCE)"
+        case .sad:       return "Sad reaction, transaction failed variant (ONCE)"
+        case .happy:     return "Happy celebration, transaction success (ONCE)"
         case .exhausted: return "Exhausted, loading > 10s (ONCE)"
         }
     }

@@ -146,7 +146,7 @@ final class CatBehaviorEngine: ObservableObject {
     func markReadyAndStartTimer() {
         guard !idleTimerReady else { return }
         idleTimerReady = true
-        startAfkTimer()
+        if isSpotlightIdleEnabled { startAfkTimer() }
     }
 
     // MARK: - Persistence Loading
@@ -180,6 +180,11 @@ final class CatBehaviorEngine: ObservableObject {
         isWalkingEnabled = enabled && CatFeatureFlags.autoWalkingEnabled
         if isWalkingEnabled { idleElapsedSeconds = 0 }
     }
+
+    // MARK: - Spotlight Idle Enable / Disable
+    // Toggle per halaman via setSpotlightIdleEnabled (+Spotlight). Kontrol
+    // kemunculan otomatis AFK; reaction tetap muncul walau false.
+    var isSpotlightIdleEnabled: Bool = CatFeatureFlags.spotlightIdleEnabledByDefault
 
     // MARK: - Loading Type
 

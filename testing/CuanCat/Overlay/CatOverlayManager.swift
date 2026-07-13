@@ -168,6 +168,16 @@ final class CatOverlayManager {
         engine?.setWalkingEnabled(enabled)
     }
 
+    // MARK: - Spotlight Idle Control
+    // Aktifkan/nonaktifkan kemunculan otomatis kucing (looping exercise) saat
+    // user AFK — panggil per halaman. Reaction tetap muncul walau dinonaktifkan.
+    //   onAppear:    CatOverlayManager.shared.setSpotlightIdleEnabled(true)
+    //   onDisappear: CatOverlayManager.shared.setSpotlightIdleEnabled(false)
+
+    func setSpotlightIdleEnabled(_ enabled: Bool) {
+        engine?.setSpotlightIdleEnabled(enabled)
+    }
+
     // MARK: - Passport
 
     func showPassport() {

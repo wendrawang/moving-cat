@@ -149,6 +149,14 @@ struct ContentView: View {
                         CatOverlayManager.shared.showDemo()
                     }
                 }
+                HStack(spacing: 12) {
+                    ControlButton(label: "spotlightIdle ON", color: .green) {
+                        CatOverlayManager.shared.setSpotlightIdleEnabled(true)
+                    }
+                    ControlButton(label: "spotlightIdle OFF", color: .gray) {
+                        CatOverlayManager.shared.setSpotlightIdleEnabled(false)
+                    }
+                }
             }
         }
     }

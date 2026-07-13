@@ -63,6 +63,15 @@ extension CatBehaviorEngine {
         }
 
         executeSideEffects(result.sideEffects)
+
+        // Reaction selesai main sekali → kembali ke rest. Jika idle-spotlight
+        // nonaktif (bukan di page yang mengizinkan looping), sembunyikan kucing
+        // alih-alih ikut looping exercise.
+        if oldState.isTransientReaction
+            && result.newState.isRestState
+            && !isSpotlightIdleEnabled {
+            hideFromSpotlight()
+        }
     }
 
     // MARK: - Visual Position

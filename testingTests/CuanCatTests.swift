@@ -42,6 +42,21 @@ final class CatStateRestPoolTests: XCTestCase {
         XCTAssertTrue(CatAnimationType.pushup.loops)
         XCTAssertTrue(CatAnimationType.starJump.loops)
     }
+
+    // HANYA 3 exercise (+ idle & walk) yang LOOP; reaction main sekali saja
+    func testHanyaExerciseYangLooping() {
+        // Looping
+        XCTAssertTrue(CatAnimationType.idle.loops)
+        XCTAssertTrue(CatAnimationType.warmup.loops)
+        XCTAssertTrue(CatAnimationType.pushup.loops)
+        XCTAssertTrue(CatAnimationType.starJump.loops)
+        XCTAssertTrue(CatAnimationType.walk.loops)
+        // Sekali saja (ONCE)
+        XCTAssertFalse(CatAnimationType.happy.loops)
+        XCTAssertFalse(CatAnimationType.sad.loops)
+        XCTAssertFalse(CatAnimationType.annoyed.loops)
+        XCTAssertFalse(CatAnimationType.exhausted.loops)
+    }
 }
 
 final class CatAssetManifestTests: XCTestCase {

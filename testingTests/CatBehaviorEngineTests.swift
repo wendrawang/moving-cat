@@ -150,6 +150,45 @@ final class CatBehaviorEngineTests: XCTestCase {
         XCTAssertFalse(engine.isSpotlightPresent)
     }
 
+    // MARK: - Spotlight Idle Enable / Disable
+
+    // Idle-spotlight nonaktif → AFK TIDAK memunculkan kucing
+    func testIdleDisabledTidakMunculViaAfk() {
+        engine.setSpotlightIdleEnabled(false)
+        engine.appearForIdle()
+        XCTAssertFalse(engine.isSpotlightPresent)
+    }
+
+    // Menonaktifkan saat sedang looping → kucing langsung sembunyi
+    func testDisableSaatLoopingMenyembunyikan() {
+        engine.appearForIdle()
+        XCTAssertTrue(engine.isSpotlightPresent)
+
+        engine.setSpotlightIdleEnabled(false)
+        XCTAssertFalse(engine.isSpotlightPresent)
+    }
+
+    // Idle nonaktif TAPI reaction tetap muncul (transaksi sukses)
+    func testReactionTetapMunculWalauIdleDisabled() {
+        engine.setSpotlightIdleEnabled(false)
+        engine.handleTransactionSuccess()
+        XCTAssertEqual(engine.currentState, .happy)
+        XCTAssertTrue(engine.isSpotlightPresent)
+    }
+
+    // Idle nonaktif: reaction selesai (animationFinished) → kucing sembunyi,
+    // tidak lanjut looping exercise
+    func testReactionSelesaiMenyembunyikanSaatIdleDisabled() {
+        engine.setSpotlightIdleEnabled(false)
+        engine.handleTransactionSuccess()
+        XCTAssertTrue(engine.isSpotlightPresent)
+
+        engine.processEvent(.animationFinished)
+
+        XCTAssertTrue(CatState.restPool.contains(engine.currentState))
+        XCTAssertFalse(engine.isSpotlightPresent)
+    }
+
     // bringBack (shake) → muncul lagi di spotlight (tengah), bukan pojok
     func testBringBackMunculDiSpotlight() {
         engine.dismiss()

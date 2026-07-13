@@ -55,7 +55,10 @@ struct CatContainerView: View {
                 height: CatLayoutConstants.spotlightHaloDiameter
             )
             .opacity(self.engine.isSpotlightPresent ? 1 : 0)
-            .position(x: self.engine.spotlightX, y: self.engine.spotlightY)
+            .position(
+                x: self.engine.spotlightX,
+                y: self.engine.spotlightY + CatLayoutConstants.spotlightHaloOffsetY
+            )
             .allowsHitTesting(false)
     }
 
@@ -69,7 +72,8 @@ struct CatContainerView: View {
                 x: self.engine.spotlightX,
                 y: self.engine.spotlightY
                     - CatLayoutConstants.spotlightBeamHeight / 2
-                    + CatLayoutConstants.avatarSize * 0.35
+                    + CatLayoutConstants.avatarSize * 0.5
+                    + CatLayoutConstants.spotlightHaloOffsetY
             )
             .allowsHitTesting(false)
     }
