@@ -80,11 +80,11 @@ final class CatOverlayManager {
         window.isHidden = false
 
         window.interactiveRectProvider = { [weak behaviorEngine] in
-            guard let eng = behaviorEngine, !eng.isDismissed else { return .zero }
+            guard let engine = behaviorEngine, !engine.isDismissed else { return .zero }
             let halfSize = CatLayoutConstants.avatarSize / 2
             return CGRect(
-                x: eng.currentVisualX - halfSize,
-                y: eng.currentVisualY - halfSize,
+                x: engine.currentVisualX - halfSize,
+                y: engine.currentVisualY - halfSize,
                 width: CatLayoutConstants.avatarSize,
                 height: CatLayoutConstants.avatarSize
             )

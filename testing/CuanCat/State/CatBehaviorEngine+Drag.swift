@@ -96,7 +96,7 @@ extension CatBehaviorEngine {
         lastDismissedFromRight = effectiveX > screenWidth / 2
 
         setIsDismissed(true)
-        spotlightAnimDuration = 0
+        spotlightGlideAnimation = nil
         withAnimation(nil) {
             self.dragOffsetX = 0
             self.dragOffsetY = 0

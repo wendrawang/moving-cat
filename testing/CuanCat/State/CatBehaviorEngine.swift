@@ -8,7 +8,8 @@ import UIKit
 // Central orchestrator: owns state machine, runs timers, publishes state.
 // Extensions: +PublicAPI (transaction, voucher), +Drag (drag, dismiss, bring back),
 // +StateTransition (forceState, processEvent), +SideEffects (stress, haptic),
-// +Timers (idle, loading, animation), +Walk (walk cycle, edge logic)
+// +Timers (idle, loading, animation), +Walk (walk cycle, edge logic),
+// +Spotlight (glide/snap ke tengah layar), +Lifecycle (persistence, day change)
 
 final class CatBehaviorEngine: ObservableObject {
 
@@ -77,19 +78,17 @@ final class CatBehaviorEngine: ObservableObject {
 
     var walkTargetX: CGFloat = 0
     var walkTimerCancellable: AnyCancellable?
-    var walkAnimStartX: CGFloat = 0
-    var walkAnimStartTime: Date = Date()
-    var walkAnimDuration: TimeInterval = 0
+    var walkAnimationStartX: CGFloat = 0
+    var walkAnimationStartTime: Date = Date()
+    var walkAnimationDuration: TimeInterval = 0
 
     // MARK: - Spotlight Glide State
-    // Interpolasi manual untuk hit testing selama glide ke spotlight —
-    // pola sama dengan walkAnim* (posisi published langsung bernilai target,
-    // visual masih di tengah animasi). Duration 0 = tidak ada glide aktif.
+    // Snapshot glide ke spotlight yang sedang berjalan (nil = tidak ada glide).
+    // Dipakai interpolasi manual untuk hit testing — pola sama dengan
+    // walkAnimation* (posisi published langsung bernilai target,
+    // visual masih di tengah animasi).
 
-    var spotlightAnimStartX: CGFloat = 0
-    var spotlightAnimStartY: CGFloat = 0
-    var spotlightAnimStartTime: Date = Date()
-    var spotlightAnimDuration: TimeInterval = 0
+    var spotlightGlideAnimation: SpotlightGlideAnimation?
 
     // MARK: - Drag State
 
@@ -144,6 +143,7 @@ final class CatBehaviorEngine: ObservableObject {
     }
 
     // MARK: - Persistence Loading
+    // Harus di file ini (bukan extension) karena men-set properti private(set).
 
     private func loadPersistedData() {
         stressPoints = persistence.loadStressPoints()
@@ -159,16 +159,6 @@ final class CatBehaviorEngine: ObservableObject {
         }
         persistence.saveLastSessionDate(Date())
         checkAndShowVoucher()
-    }
-
-    private func observeDayChange() {
-        dayChangeObserver = NotificationCenter.default.addObserver(
-            forName: UIApplication.significantTimeChangeNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            self?.processEvent(.dayChanged)
-        }
     }
 
     // MARK: - Walking Enable / Disable
@@ -206,7 +196,7 @@ final class CatBehaviorEngine: ObservableObject {
     func setPendingVoucher(_ voucher: VoucherModel?) { pendingVoucher = voucher }
     func setIsVoucherOverlayVisible(_ visible: Bool) { isVoucherOverlayVisible = visible }
     func setIsPassportVisible(_ visible: Bool) { isPassportVisible = visible }
-    func setIsDismissed(_ val: Bool) { isDismissed = val }
+    func setIsDismissed(_ dismissed: Bool) { isDismissed = dismissed }
 
     // MARK: - Display Animation
 
@@ -218,16 +208,16 @@ final class CatBehaviorEngine: ObservableObject {
     // MARK: - Mutable Setters
 
     func setCurrentState(_ state: CatState) { currentState = state }
-    func setCatPositionX(_ val: CGFloat) { catPositionX = val }
-    func setCatPositionY(_ val: CGFloat) { catPositionY = val }
-    func setWalkDirection(_ dir: CatDirection) { walkDirection = dir }
-    func setShowVoucherEnvelope(_ val: Bool) { showVoucherEnvelope = val }
+    func setCatPositionX(_ position: CGFloat) { catPositionX = position }
+    func setCatPositionY(_ position: CGFloat) { catPositionY = position }
+    func setWalkDirection(_ direction: CatDirection) { walkDirection = direction }
+    func setShowVoucherEnvelope(_ visible: Bool) { showVoucherEnvelope = visible }
 
-    func updateStressPoints(_ val: Int) {
+    func updateStressPoints(_ points: Int) {
         withAnimation(.easeInOut(duration: 0.8)) {
-            stressPoints = val
+            stressPoints = points
         }
-        persistence.saveStressPoints(val)
+        persistence.saveStressPoints(points)
     }
 
     func appendVoucherHistory(_ voucher: VoucherModel) {
@@ -241,20 +231,6 @@ final class CatBehaviorEngine: ObservableObject {
             moodHistory = Array(moodHistory.suffix(maxEntries))
         }
         persistence.saveMoodHistory(moodHistory)
-    }
-
-    // MARK: - Cleanup
-
-    func cleanup() {
-        CatAudioManager.shared.stopAll()
-        walkTimerCancellable?.cancel()
-        idleTimerCancellable?.cancel()
-        loadingTimerCancellable?.cancel()
-        animationTimerCancellable?.cancel()
-
-        if let observer = dayChangeObserver {
-            NotificationCenter.default.removeObserver(observer)
-        }
     }
 
     deinit { cleanup() }

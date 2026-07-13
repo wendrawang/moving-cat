@@ -2,6 +2,17 @@ import CoreGraphics
 import Foundation
 import SwiftUI
 
+// MARK: - Spotlight Glide Animation Snapshot
+
+/// Snapshot glide ke spotlight yang sedang berjalan — dipakai interpolasi
+/// manual (hit testing + interrupt drag) selama animasi SwiftUI jalan.
+struct SpotlightGlideAnimation {
+    let startPositionX: CGFloat
+    let startPositionY: CGFloat
+    let startTime: Date
+    let duration: TimeInterval
+}
+
 // MARK: - Spotlight Positioning
 //
 // "Spotlight" = panggung tengah layar. Dua jalur menuju spotlight:
@@ -44,10 +55,12 @@ extension CatBehaviorEngine {
     }
 
     private func glideToSpotlight() {
-        spotlightAnimStartX = catPositionX
-        spotlightAnimStartY = catPositionY
-        spotlightAnimStartTime = Date()
-        spotlightAnimDuration = CatTimingConstants.spotlightGlideDuration
+        spotlightGlideAnimation = SpotlightGlideAnimation(
+            startPositionX: catPositionX,
+            startPositionY: catPositionY,
+            startTime: Date(),
+            duration: CatTimingConstants.spotlightGlideDuration
+        )
 
         withAnimation(
             .easeInOut(duration: CatTimingConstants.spotlightGlideDuration)
@@ -64,7 +77,7 @@ extension CatBehaviorEngine {
     /// dipegang (drag) atau sudah dibuang — jangan rebut posisi dari user.
     func snapToSpotlightForReaction() {
         guard !isDragging, !isDismissed else { return }
-        spotlightAnimDuration = 0
+        spotlightGlideAnimation = nil
         var transaction = SwiftUI.Transaction()
         transaction.disablesAnimations = true
         withTransaction(transaction) {
@@ -80,30 +93,34 @@ extension CatBehaviorEngine {
     /// aktif (posisi visual = catPositionX/Y biasa). Curve mengaproksimasi
     /// easeInOut agar interactive rect mengikuti posisi visual.
     var spotlightGlideVisualPosition: CGPoint? {
-        guard spotlightAnimDuration > 0 else { return nil }
-        let elapsed = Date().timeIntervalSince(spotlightAnimStartTime)
-        let t = CGFloat(elapsed / spotlightAnimDuration)
-        guard t < 1.0 else { return nil }
-        let inverse = -2 * t + 2
-        let eased: CGFloat = t < 0.5
-            ? 2 * t * t
-            : 1 - inverse * inverse / 2
+        guard let glide = spotlightGlideAnimation, glide.duration > 0 else {
+            return nil
+        }
+        let elapsedSeconds = Date().timeIntervalSince(glide.startTime)
+        let linearProgress = CGFloat(elapsedSeconds / glide.duration)
+        guard linearProgress < 1.0 else { return nil }
+        let inverseProgress = -2 * linearProgress + 2
+        let easedProgress: CGFloat = linearProgress < 0.5
+            ? 2 * linearProgress * linearProgress
+            : 1 - inverseProgress * inverseProgress / 2
         return CGPoint(
-            x: spotlightAnimStartX + (spotlightX - spotlightAnimStartX) * eased,
-            y: spotlightAnimStartY + (spotlightY - spotlightAnimStartY) * eased
+            x: glide.startPositionX
+                + (spotlightX - glide.startPositionX) * easedProgress,
+            y: glide.startPositionY
+                + (spotlightY - glide.startPositionY) * easedProgress
         )
     }
 
     /// Drag dimulai di tengah glide → bekukan posisi di titik visual saat ini
     /// supaya kucing tidak "lompat" ke target spotlight di bawah jari user.
     func snapToCurrentGlidePosition() {
-        guard let visual = spotlightGlideVisualPosition else { return }
-        spotlightAnimDuration = 0
+        guard let visualPosition = spotlightGlideVisualPosition else { return }
+        spotlightGlideAnimation = nil
         var transaction = SwiftUI.Transaction()
         transaction.disablesAnimations = true
         withTransaction(transaction) {
-            self.catPositionX = visual.x
-            self.catPositionY = visual.y
+            self.catPositionX = visualPosition.x
+            self.catPositionY = visualPosition.y
         }
     }
 }

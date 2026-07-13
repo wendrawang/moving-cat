@@ -72,12 +72,12 @@ extension CatBehaviorEngine {
         if let glide = spotlightGlideVisualPosition {
             return glide.x
         }
-        guard currentState == .walking, walkAnimDuration > 0 else {
+        guard currentState == .walking, walkAnimationDuration > 0 else {
             return catPositionX
         }
-        let elapsed = Date().timeIntervalSince(walkAnimStartTime)
-        let progress = min(CGFloat(elapsed / walkAnimDuration), 1.0)
-        return walkAnimStartX + (walkTargetX - walkAnimStartX) * progress
+        let elapsed = Date().timeIntervalSince(walkAnimationStartTime)
+        let progress = min(CGFloat(elapsed / walkAnimationDuration), 1.0)
+        return walkAnimationStartX + (walkTargetX - walkAnimationStartX) * progress
     }
 
     /// Posisi visual Y — hanya glide spotlight yang menganimasikan Y.
@@ -88,10 +88,10 @@ extension CatBehaviorEngine {
     /// BUG-05 fix: gunakan withTransaction(disablesAnimations: true) untuk
     /// benar-benar membatalkan animasi SwiftUI yang sedang berjalan.
     func snapToCurrentWalkPosition() {
-        guard walkAnimDuration > 0 else { return }
-        let elapsed = Date().timeIntervalSince(walkAnimStartTime)
-        let progress = min(CGFloat(elapsed / walkAnimDuration), 1.0)
-        let interpolated = walkAnimStartX + (walkTargetX - walkAnimStartX) * progress
+        guard walkAnimationDuration > 0 else { return }
+        let elapsed = Date().timeIntervalSince(walkAnimationStartTime)
+        let progress = min(CGFloat(elapsed / walkAnimationDuration), 1.0)
+        let interpolated = walkAnimationStartX + (walkTargetX - walkAnimationStartX) * progress
         var transaction = SwiftUI.Transaction()
         transaction.disablesAnimations = true
         SwiftUI.withTransaction(transaction) {
