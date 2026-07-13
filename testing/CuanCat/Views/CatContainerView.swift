@@ -9,12 +9,54 @@ struct CatContainerView: View {
 
     var body: some View {
         ZStack {
+            spotlightScrimLayer
+            spotlightHaloLayer
             spotlightBeamLayer
             catLayer
             passportLayer
             voucherOverlayLayer
         }
         .edgesIgnoringSafeArea(.all)
+    }
+
+    // MARK: - Spotlight Scrim Layer
+    // Gelapkan seluruh layar saat kucing tampil supaya sorot lampu kelihatan
+    // walau UI app terang. Tidak menangkap touch (hit test diatur window).
+
+    private var spotlightScrimLayer: some View {
+        Color.black
+            .opacity(
+                self.engine.isSpotlightPresent
+                    ? Double(CatLayoutConstants.spotlightScrimOpacity)
+                    : 0
+            )
+            .edgesIgnoringSafeArea(.all)
+            .allowsHitTesting(false)
+    }
+
+    // MARK: - Spotlight Halo Layer
+    // Cahaya lembut di sekitar kucing yang menembus scrim gelap.
+
+    private var spotlightHaloLayer: some View {
+        Circle()
+            .fill(
+                RadialGradient(
+                    gradient: Gradient(colors: [
+                        Color.white.opacity(0.28),
+                        Color.white.opacity(0.0)
+                    ]),
+                    center: .center,
+                    startRadius: 0,
+                    endRadius: CatLayoutConstants.spotlightHaloDiameter / 2
+                )
+            )
+            .frame(
+                width: CatLayoutConstants.spotlightHaloDiameter,
+                height: CatLayoutConstants.spotlightHaloDiameter
+            )
+            .opacity(self.engine.isSpotlightPresent ? 1 : 0)
+            .position(x: self.engine.spotlightX, y: self.engine.spotlightY)
+            .allowsHitTesting(false)
     }
 
     // MARK: - Spotlight Beam Layer

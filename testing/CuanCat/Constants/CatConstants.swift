@@ -87,6 +87,13 @@ enum CatLayoutConstants {
     static let spotlightXRatio: CGFloat = 0.5
     static let spotlightYRatio: CGFloat = 0.5
 
+    /// Scrim gelap seluruh layar saat kucing di spotlight — bikin sorot
+    /// lampu kelihatan walau UI app terang/putih (efek panggung teater).
+    static let spotlightScrimOpacity: CGFloat = 0.62
+
+    /// Halo cahaya lembut di sekitar kucing (menembus scrim gelap).
+    static let spotlightHaloDiameter: CGFloat = 340.0
+
     /// Dimensi efek sorot lampu (beam) di belakang kucing saat di spotlight.
     /// Cone menyempit di atas, melebar ke bawah; floor glow di kaki kucing.
     static let spotlightBeamTopWidth: CGFloat = 40.0
