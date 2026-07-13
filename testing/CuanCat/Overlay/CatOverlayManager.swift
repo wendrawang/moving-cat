@@ -84,7 +84,7 @@ final class CatOverlayManager {
             let halfSize = CatLayoutConstants.avatarSize / 2
             return CGRect(
                 x: eng.currentVisualX - halfSize,
-                y: eng.catPositionY - halfSize,
+                y: eng.currentVisualY - halfSize,
                 width: CatLayoutConstants.avatarSize,
                 height: CatLayoutConstants.avatarSize
             )

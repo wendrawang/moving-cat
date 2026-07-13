@@ -24,6 +24,7 @@ extension CatBehaviorEngine {
             if currentState == .walking {
                 snapToCurrentWalkPosition()
             }
+            snapToCurrentGlidePosition()
             stopWalkTimer()
             stopIdleTimer()
         }
@@ -95,6 +96,7 @@ extension CatBehaviorEngine {
         lastDismissedFromRight = effectiveX > screenWidth / 2
 
         setIsDismissed(true)
+        spotlightAnimDuration = 0
         withAnimation(nil) {
             self.dragOffsetX = 0
             self.dragOffsetY = 0

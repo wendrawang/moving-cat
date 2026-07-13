@@ -217,6 +217,64 @@ final class CatBehaviorEngineTests: XCTestCase {
         XCTAssertTrue(engine.isDismissed)
     }
 
+    // MARK: - Spotlight
+
+    // Reaction (happy/sad/annoyed/exhausted) langsung tampil di spotlight
+    // (tengah layar) sejak muncul
+    func testReactionLangsungMunculDiSpotlight() {
+        XCTAssertNotEqual(engine.catPositionX, engine.spotlightX, accuracy: 0.5)
+
+        engine.handleTransactionSuccess()
+
+        XCTAssertEqual(engine.currentState, .happy)
+        XCTAssertEqual(engine.catPositionX, engine.spotlightX, accuracy: 0.5)
+        XCTAssertEqual(engine.catPositionY, engine.spotlightY, accuracy: 0.5)
+    }
+
+    // Rest state tanpa kegiatan → glide ke spotlight setelah threshold.
+    // Homebase ikut pindah ke spotlight.
+    func testRestTanpaKegiatanGlideKeSpotlight() {
+        XCTAssertNotEqual(engine.catPositionX, engine.spotlightX, accuracy: 0.5)
+
+        engine.glideToSpotlightIfIdle(
+            elapsed: CatTimingConstants.idleToSpotlightThreshold
+        )
+
+        XCTAssertEqual(engine.catPositionX, engine.spotlightX, accuracy: 0.5)
+        XCTAssertEqual(engine.catPositionY, engine.spotlightY, accuracy: 0.5)
+        XCTAssertEqual(engine.homePositionX, engine.spotlightX, accuracy: 0.5)
+        XCTAssertEqual(engine.homePositionY, engine.spotlightY, accuracy: 0.5)
+    }
+
+    // Belum melewati threshold → tetap di posisi semula
+    func testGlideTidakJalanSebelumThreshold() {
+        let startX = engine.catPositionX
+        engine.glideToSpotlightIfIdle(
+            elapsed: CatTimingConstants.idleToSpotlightThreshold - 1
+        )
+        XCTAssertEqual(engine.catPositionX, startX, accuracy: 0.5)
+    }
+
+    // Sedang loading = ada kegiatan → tidak glide ke spotlight
+    func testGlideTidakJalanSaatLoading() {
+        let startX = engine.catPositionX
+        engine.handleLoadingStarted(.silent)
+        engine.glideToSpotlightIfIdle(
+            elapsed: CatTimingConstants.idleToSpotlightThreshold
+        )
+        XCTAssertEqual(engine.catPositionX, startX, accuracy: 0.5)
+    }
+
+    // Kucing dibuang (dismiss) → tidak glide ke spotlight
+    func testGlideTidakJalanSaatDismissed() {
+        engine.dismiss()
+        let startX = engine.catPositionX
+        engine.glideToSpotlightIfIdle(
+            elapsed: CatTimingConstants.idleToSpotlightThreshold
+        )
+        XCTAssertEqual(engine.catPositionX, startX, accuracy: 0.5)
+    }
+
     // bringBack → langsung muncul di homebase kanan-bawah dengan rest state acak
     func testBringBackInstanDiHomebaseKananBawah() {
         engine.dismiss()

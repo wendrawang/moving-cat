@@ -81,6 +81,16 @@ final class CatBehaviorEngine: ObservableObject {
     var walkAnimStartTime: Date = Date()
     var walkAnimDuration: TimeInterval = 0
 
+    // MARK: - Spotlight Glide State
+    // Interpolasi manual untuk hit testing selama glide ke spotlight —
+    // pola sama dengan walkAnim* (posisi published langsung bernilai target,
+    // visual masih di tengah animasi). Duration 0 = tidak ada glide aktif.
+
+    var spotlightAnimStartX: CGFloat = 0
+    var spotlightAnimStartY: CGFloat = 0
+    var spotlightAnimStartTime: Date = Date()
+    var spotlightAnimDuration: TimeInterval = 0
+
     // MARK: - Drag State
 
     var isDragging: Bool = false

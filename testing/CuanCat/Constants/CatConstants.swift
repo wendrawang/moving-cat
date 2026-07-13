@@ -29,6 +29,14 @@ enum CatTimingConstants {
     /// rotasi me-reset idle timer sehingga walking tidak akan pernah trigger.
     static let restRotationInterval: TimeInterval = 6.0
 
+    /// Rest tanpa kegiatan → glide ke spotlight (tengah layar) threshold (seconds).
+    /// ⚠ Harus < restRotationInterval — rotasi rest me-reset idle timer,
+    /// jadi threshold di atas 6s tidak akan pernah tercapai.
+    static let idleToSpotlightThreshold: TimeInterval = 3.0
+
+    /// Durasi glide rest state menuju spotlight (seconds)
+    static let spotlightGlideDuration: TimeInterval = 1.2
+
     /// Walking → back to idle threshold (seconds)
     static let walkToIdleThreshold: TimeInterval = 45.0
 
@@ -70,6 +78,12 @@ enum CatLayoutConstants {
     /// Batas atas posisi Y kucing saat di-drag (jaga di bawah status bar area)
     static let dragTopMargin: CGFloat = 84.0
     static let defaultStartXRatio: CGFloat = 0.85
+
+    /// Posisi spotlight — "panggung" tengah layar tempat kucing tampil.
+    /// Rest state glide ke sini saat tidak ada kegiatan; reaction state
+    /// (happy/sad/annoyed/exhausted) langsung muncul di sini.
+    static let spotlightXRatio: CGFloat = 0.5
+    static let spotlightYRatio: CGFloat = 0.5
     static let speechBubbleOffsetY: CGFloat = -50.0
     static let envelopeBadgeSize: CGFloat = 24.0
     static let passportCornerRadius: CGFloat = 20.0
