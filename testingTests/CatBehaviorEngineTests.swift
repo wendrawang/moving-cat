@@ -14,6 +14,9 @@ final class CatBehaviorEngineTests: XCTestCase {
     override func setUp() {
         super.setUp()
         engine = CatBehaviorEngine()
+        // Default produksi idle-spotlight = false (hanya aktif di page tertentu).
+        // Aktifkan di test agar jalur appearForIdle/looping bisa diuji.
+        engine.setIdleAnimationEnabled(true)
     }
 
     override func tearDown() {
@@ -152,9 +155,19 @@ final class CatBehaviorEngineTests: XCTestCase {
 
     // MARK: - Spotlight Idle Enable / Disable
 
+    // Default engine mengikuti feature flag (produksi: false = off)
+    func testDefaultIdleMengikutiFeatureFlag() {
+        let fresh = CatBehaviorEngine()
+        XCTAssertEqual(
+            fresh.isIdleAnimationEnabled,
+            CatFeatureFlags.idleAnimationEnabledByDefault
+        )
+        fresh.cleanup()
+    }
+
     // Idle-spotlight nonaktif → AFK TIDAK memunculkan kucing
     func testIdleDisabledTidakMunculViaAfk() {
-        engine.setSpotlightIdleEnabled(false)
+        engine.setIdleAnimationEnabled(false)
         engine.appearForIdle()
         XCTAssertFalse(engine.isSpotlightPresent)
     }
@@ -164,13 +177,13 @@ final class CatBehaviorEngineTests: XCTestCase {
         engine.appearForIdle()
         XCTAssertTrue(engine.isSpotlightPresent)
 
-        engine.setSpotlightIdleEnabled(false)
+        engine.setIdleAnimationEnabled(false)
         XCTAssertFalse(engine.isSpotlightPresent)
     }
 
     // Idle nonaktif TAPI reaction tetap muncul (transaksi sukses)
     func testReactionTetapMunculWalauIdleDisabled() {
-        engine.setSpotlightIdleEnabled(false)
+        engine.setIdleAnimationEnabled(false)
         engine.handleTransactionSuccess()
         XCTAssertEqual(engine.currentState, .happy)
         XCTAssertTrue(engine.isSpotlightPresent)
@@ -179,7 +192,7 @@ final class CatBehaviorEngineTests: XCTestCase {
     // Idle nonaktif: reaction selesai (animationFinished) → kucing sembunyi,
     // tidak lanjut looping exercise
     func testReactionSelesaiMenyembunyikanSaatIdleDisabled() {
-        engine.setSpotlightIdleEnabled(false)
+        engine.setIdleAnimationEnabled(false)
         engine.handleTransactionSuccess()
         XCTAssertTrue(engine.isSpotlightPresent)
 

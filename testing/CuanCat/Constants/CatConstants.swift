@@ -10,11 +10,12 @@ enum CatFeatureFlags {
     /// CatOverlayManager.shared.setWalkingEnabled(true)) untuk mengaktifkan kembali.
     static let autoWalkingEnabled: Bool = false
 
-    /// Default apakah kucing boleh MUNCUL SENDIRI saat user AFK (looping
-    /// warmup/pushup/starJump). Mirip autoWalkingEnabled — atur per halaman
-    /// via CatOverlayManager.shared.setSpotlightIdleEnabled(true/false).
+    /// Default apakah 3 animasi idle (warmup/pushup/starJump) boleh MUNCUL
+    /// SENDIRI saat user AFK. DEFAULT false — hanya muncul di halaman yang
+    /// mengaktifkan lewat CatOverlayManager.shared.setIdleAnimationEnabled(true)
+    /// (mis. di onAppear), lalu setIdleAnimationEnabled(false) di onDisappear.
     /// Reaction (transaksi sukses/gagal/exhausted) TETAP muncul walau ini false.
-    static let spotlightIdleEnabledByDefault: Bool = true
+    static let idleAnimationEnabledByDefault: Bool = false
 }
 
 // MARK: - Timing Constants
@@ -73,7 +74,9 @@ enum CatTimingConstants {
 // MARK: - Layout Constants
 
 enum CatLayoutConstants {
-    static let avatarSize: CGFloat = 160.0
+    /// Ukuran kucing. Dibesarkan 160 → 240 (~1.5×) agar lebih menonjol di
+    /// spotlight (naikkan lagi ke ~280 kalau mau lebih dominan).
+    static let avatarSize: CGFloat = 240.0
     static let bottomPadding: CGFloat = FrameSizes.MainTabBar.height
         + FrameSizes.MainTabBar.paddingBottom
         + Spaces.extraSmall
@@ -98,19 +101,21 @@ enum CatLayoutConstants {
     static let spotlightScrimOpacity: CGFloat = 0.62
 
     /// Halo cahaya lembut di sekitar kucing (menembus scrim gelap).
-    static let spotlightHaloDiameter: CGFloat = 340.0
+    /// Ikut diperbesar mengikuti avatar (~1.5×).
+    static let spotlightHaloDiameter: CGFloat = 500.0
 
     /// Offset Y lingkaran cahaya (halo + beam) relatif titik kucing —
     /// positif = turun. Bikin kucing benar-benar di TENGAH lingkaran cahaya.
-    static let spotlightHaloOffsetY: CGFloat = 28.0
+    static let spotlightHaloOffsetY: CGFloat = 42.0
 
     /// Dimensi efek sorot lampu (beam) di belakang kucing saat di spotlight.
     /// Cone menyempit di atas, melebar ke bawah; floor glow di kaki kucing.
-    static let spotlightBeamTopWidth: CGFloat = 40.0
-    static let spotlightBeamBottomWidth: CGFloat = 260.0
-    static let spotlightBeamHeight: CGFloat = 300.0
-    static let spotlightFloorGlowWidth: CGFloat = 220.0
-    static let spotlightFloorGlowHeight: CGFloat = 60.0
+    /// Ikut diskalakan ~1.5× mengikuti avatar yang lebih besar.
+    static let spotlightBeamTopWidth: CGFloat = 60.0
+    static let spotlightBeamBottomWidth: CGFloat = 390.0
+    static let spotlightBeamHeight: CGFloat = 440.0
+    static let spotlightFloorGlowWidth: CGFloat = 330.0
+    static let spotlightFloorGlowHeight: CGFloat = 90.0
     static let speechBubbleOffsetY: CGFloat = -50.0
     static let envelopeBadgeSize: CGFloat = 24.0
     static let passportCornerRadius: CGFloat = 20.0

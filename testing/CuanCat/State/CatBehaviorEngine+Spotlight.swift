@@ -26,9 +26,9 @@ extension CatBehaviorEngine {
     /// Aktifkan/nonaktifkan kemunculan otomatis kucing saat AFK.
     /// - true  : mulai hitung AFK lagi bila kucing sedang sembunyi.
     /// - false : stop AFK; jika sedang looping (bukan mid-reaction) → sembunyikan.
-    func setSpotlightIdleEnabled(_ enabled: Bool) {
-        guard enabled != isSpotlightIdleEnabled else { return }
-        isSpotlightIdleEnabled = enabled
+    func setIdleAnimationEnabled(_ enabled: Bool) {
+        guard enabled != isIdleAnimationEnabled else { return }
+        isIdleAnimationEnabled = enabled
 
         if enabled {
             if !isSpotlightPresent && !isDismissed { startAfkTimer() }
@@ -89,7 +89,7 @@ extension CatBehaviorEngine {
 
     /// Kucing muncul di spotlight karena user AFK, lalu looping exercise.
     func appearForIdle() {
-        guard isSpotlightIdleEnabled, !isDismissed, !isSpotlightPresent else {
+        guard isIdleAnimationEnabled, !isDismissed, !isSpotlightPresent else {
             return
         }
         showInSpotlight()
@@ -150,6 +150,6 @@ extension CatBehaviorEngine {
         stopIdleTimer()
         cancelPendingAnimations()
         CatAudioManager.shared.stopLoop()
-        if isSpotlightIdleEnabled { startAfkTimer() }
+        if isIdleAnimationEnabled { startAfkTimer() }
     }
 }

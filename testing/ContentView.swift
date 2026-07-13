@@ -150,11 +150,11 @@ struct ContentView: View {
                     }
                 }
                 HStack(spacing: 12) {
-                    ControlButton(label: "spotlightIdle ON", color: .green) {
-                        CatOverlayManager.shared.setSpotlightIdleEnabled(true)
+                    ControlButton(label: "idleAnim ON\n(page tertentu)", color: .green) {
+                        CatOverlayManager.shared.setIdleAnimationEnabled(true)
                     }
-                    ControlButton(label: "spotlightIdle OFF", color: .gray) {
-                        CatOverlayManager.shared.setSpotlightIdleEnabled(false)
+                    ControlButton(label: "idleAnim OFF", color: .gray) {
+                        CatOverlayManager.shared.setIdleAnimationEnabled(false)
                     }
                 }
             }

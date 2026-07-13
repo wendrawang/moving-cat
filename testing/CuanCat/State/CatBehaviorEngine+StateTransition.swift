@@ -69,7 +69,7 @@ extension CatBehaviorEngine {
         // alih-alih ikut looping exercise.
         if oldState.isTransientReaction
             && result.newState.isRestState
-            && !isSpotlightIdleEnabled {
+            && !isIdleAnimationEnabled {
             hideFromSpotlight()
         }
     }
