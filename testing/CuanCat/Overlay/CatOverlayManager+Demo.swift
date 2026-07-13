@@ -9,8 +9,8 @@ extension CatOverlayManager {
     /// Prioritas: presenter yang diberikan → main app window → overlay window.
     /// Bisa juga langsung embed `CatDemoView(engine: engine)` di app.
     func showDemo(from viewController: UIViewController? = nil) {
-        guard let eng = engine else { return }
-        let demoView = CatDemoView(engine: eng)
+        guard let behaviorEngine = engine else { return }
+        let demoView = CatDemoView(engine: behaviorEngine)
         let hosting = UIHostingController(rootView: demoView)
         hosting.modalPresentationStyle = .pageSheet
 

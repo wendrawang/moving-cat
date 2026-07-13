@@ -149,6 +149,14 @@ struct ContentView: View {
                         CatOverlayManager.shared.showDemo()
                     }
                 }
+                HStack(spacing: 12) {
+                    ControlButton(label: "idleAnim ON\n(page tertentu)", color: .green) {
+                        CatOverlayManager.shared.setIdleAnimationEnabled(true)
+                    }
+                    ControlButton(label: "idleAnim OFF", color: .gray) {
+                        CatOverlayManager.shared.setIdleAnimationEnabled(false)
+                    }
+                }
             }
         }
     }

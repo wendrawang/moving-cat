@@ -84,9 +84,9 @@ extension CatBehaviorEngine {
             return
         }
 
-        walkAnimStartX = startX
-        walkAnimStartTime = Date()
-        walkAnimDuration = duration
+        walkAnimationStartX = startX
+        walkAnimationStartTime = Date()
+        walkAnimationDuration = duration
 
         withAnimation(.linear(duration: duration)) {
             self.setCatPositionX(target)

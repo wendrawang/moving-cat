@@ -9,6 +9,21 @@ enum CatFeatureFlags {
     /// Logic walk TIDAK dihapus — set true (atau panggil
     /// CatOverlayManager.shared.setWalkingEnabled(true)) untuk mengaktifkan kembali.
     static let autoWalkingEnabled: Bool = false
+
+    /// Default apakah 3 animasi idle (warmup/pushup/starJump) boleh MUNCUL
+    /// SENDIRI saat user AFK. DEFAULT false — hanya muncul di halaman yang
+    /// mengaktifkan lewat CatOverlayManager.shared.setIdleAnimationEnabled(true)
+    /// (mis. di onAppear), lalu setIdleAnimationEnabled(false) di onDisappear.
+    /// Reaction (transaksi sukses/gagal/exhausted) TETAP muncul walau ini false.
+    static let idleAnimationEnabledByDefault: Bool = false
+}
+
+// MARK: - Copy / Strings
+
+enum CatStrings {
+    /// Label "panggung" di bawah kucing saat kemunculan AFK (dua baris).
+    static let stagePerformingCaption: String = "NOW PERFORMING"
+    static let stageName: String = "CuanCat"
 }
 
 // MARK: - Timing Constants
@@ -28,6 +43,20 @@ enum CatTimingConstants {
     /// naikkan nilai ini di atas threshold walk atau matikan rotasi —
     /// rotasi me-reset idle timer sehingga walking tidak akan pernah trigger.
     static let restRotationInterval: TimeInterval = 6.0
+
+    /// User AFK (tanpa sentuhan apa pun di layar) → kucing muncul di
+    /// spotlight (seconds). Countdown di-restart setiap ada sentuhan.
+    static let afkAppearThreshold: TimeInterval = 8.0
+
+    /// Durasi fade-in kemunculan kucing + sorot lampu di spotlight (seconds)
+    static let spotlightAppearDuration: TimeInterval = 0.3
+
+    /// Durasi fade-out saat kucing sembunyi dari spotlight (seconds)
+    static let spotlightHideDuration: TimeInterval = 0.2
+
+    /// Berapa lama label "Now Performing" tampil sebelum auto-hilang (seconds).
+    /// Kucing tetap di spotlight looping setelah label hilang.
+    static let stageLabelDuration: TimeInterval = 3.0
 
     /// Walking → back to idle threshold (seconds)
     static let walkToIdleThreshold: TimeInterval = 45.0
@@ -57,7 +86,9 @@ enum CatTimingConstants {
 // MARK: - Layout Constants
 
 enum CatLayoutConstants {
-    static let avatarSize: CGFloat = 160.0
+    /// Ukuran kucing. Dibesarkan 160 → 240 (~1.5×) agar lebih menonjol di
+    /// spotlight (naikkan lagi ke ~280 kalau mau lebih dominan).
+    static let avatarSize: CGFloat = 240.0
     static let bottomPadding: CGFloat = FrameSizes.MainTabBar.height
         + FrameSizes.MainTabBar.paddingBottom
         + Spaces.extraSmall
@@ -70,6 +101,33 @@ enum CatLayoutConstants {
     /// Batas atas posisi Y kucing saat di-drag (jaga di bawah status bar area)
     static let dragTopMargin: CGFloat = 84.0
     static let defaultStartXRatio: CGFloat = 0.85
+
+    /// Posisi spotlight — "panggung" tempat kucing tampil.
+    /// X di tengah; Y sedikit DI BAWAH tengah (0.57) supaya kucing terlihat
+    /// "berpijak" — bukan melayang di setengah layar.
+    static let spotlightXRatio: CGFloat = 0.5
+    static let spotlightYRatio: CGFloat = 0.57
+
+    /// Scrim gelap seluruh layar saat kucing di spotlight — bikin sorot
+    /// lampu kelihatan walau UI app terang/putih (efek panggung teater).
+    static let spotlightScrimOpacity: CGFloat = 0.62
+
+    /// Halo cahaya lembut di sekitar kucing (menembus scrim gelap).
+    /// Ikut diperbesar mengikuti avatar (~1.5×).
+    static let spotlightHaloDiameter: CGFloat = 500.0
+
+    /// Offset Y lingkaran cahaya (halo + beam) relatif titik kucing —
+    /// positif = turun. Bikin kucing benar-benar di TENGAH lingkaran cahaya.
+    static let spotlightHaloOffsetY: CGFloat = 42.0
+
+    /// Dimensi efek sorot lampu (beam) di belakang kucing saat di spotlight.
+    /// Cone menyempit di atas, melebar ke bawah; floor glow di kaki kucing.
+    /// Ikut diskalakan ~1.5× mengikuti avatar yang lebih besar.
+    static let spotlightBeamTopWidth: CGFloat = 60.0
+    static let spotlightBeamBottomWidth: CGFloat = 390.0
+    static let spotlightBeamHeight: CGFloat = 440.0
+    static let spotlightFloorGlowWidth: CGFloat = 330.0
+    static let spotlightFloorGlowHeight: CGFloat = 90.0
     static let speechBubbleOffsetY: CGFloat = -50.0
     static let envelopeBadgeSize: CGFloat = 24.0
     static let passportCornerRadius: CGFloat = 20.0

@@ -80,14 +80,21 @@ final class CatOverlayManager {
         window.isHidden = false
 
         window.interactiveRectProvider = { [weak behaviorEngine] in
-            guard let eng = behaviorEngine, !eng.isDismissed else { return .zero }
+            guard let engine = behaviorEngine,
+                  !engine.isDismissed,
+                  engine.isSpotlightPresent
+            else { return .zero }
             let halfSize = CatLayoutConstants.avatarSize / 2
             return CGRect(
-                x: eng.currentVisualX - halfSize,
-                y: eng.catPositionY - halfSize,
+                x: engine.currentVisualX - halfSize,
+                y: engine.currentVisualY - halfSize,
                 width: CatLayoutConstants.avatarSize,
                 height: CatLayoutConstants.avatarSize
             )
+        }
+
+        window.onUserInteraction = { [weak behaviorEngine] isOnCat in
+            behaviorEngine?.registerUserActivity(isOnCat: isOnCat)
         }
 
         window.isModalVisibleProvider = { [weak behaviorEngine] in
@@ -159,6 +166,16 @@ final class CatOverlayManager {
 
     func setWalkingEnabled(_ enabled: Bool) {
         engine?.setWalkingEnabled(enabled)
+    }
+
+    // MARK: - Spotlight Idle Control
+    // Aktifkan/nonaktifkan kemunculan otomatis kucing (looping exercise) saat
+    // user AFK — panggil per halaman. Reaction tetap muncul walau dinonaktifkan.
+    //   onAppear:    CatOverlayManager.shared.setIdleAnimationEnabled(true)
+    //   onDisappear: CatOverlayManager.shared.setIdleAnimationEnabled(false)
+
+    func setIdleAnimationEnabled(_ enabled: Bool) {
+        engine?.setIdleAnimationEnabled(enabled)
     }
 
     // MARK: - Passport

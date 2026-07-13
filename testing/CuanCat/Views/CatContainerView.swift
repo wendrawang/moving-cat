@@ -9,11 +9,112 @@ struct CatContainerView: View {
 
     var body: some View {
         ZStack {
+            spotlightScrimLayer
+            spotlightHaloLayer
+            spotlightBeamLayer
+            spotlightParticlesLayer
             catLayer
+            spotlightStageLabelLayer
             passportLayer
             voucherOverlayLayer
         }
         .edgesIgnoringSafeArea(.all)
+    }
+
+    // MARK: - Spotlight Scrim Layer
+    // Gelapkan seluruh layar saat kucing tampil supaya sorot lampu kelihatan
+    // walau UI app terang. Tidak menangkap touch (hit test diatur window).
+
+    private var spotlightScrimLayer: some View {
+        Color.black
+            .opacity(
+                self.engine.isSpotlightPresent
+                    ? Double(CatLayoutConstants.spotlightScrimOpacity)
+                    : 0
+            )
+            .edgesIgnoringSafeArea(.all)
+            .allowsHitTesting(false)
+    }
+
+    // MARK: - Spotlight Halo Layer
+    // Cahaya lembut di sekitar kucing yang menembus scrim gelap.
+
+    private var spotlightHaloLayer: some View {
+        Circle()
+            .fill(
+                RadialGradient(
+                    gradient: Gradient(colors: [
+                        Color.white.opacity(0.28),
+                        Color.white.opacity(0.0)
+                    ]),
+                    center: .center,
+                    startRadius: 0,
+                    endRadius: CatLayoutConstants.spotlightHaloDiameter / 2
+                )
+            )
+            .frame(
+                width: CatLayoutConstants.spotlightHaloDiameter,
+                height: CatLayoutConstants.spotlightHaloDiameter
+            )
+            .opacity(self.engine.isSpotlightPresent ? 1 : 0)
+            .position(
+                x: self.engine.spotlightX,
+                y: self.engine.spotlightY + CatLayoutConstants.spotlightHaloOffsetY
+            )
+            .allowsHitTesting(false)
+    }
+
+    // MARK: - Spotlight Beam Layer
+    // Sorot lampu di belakang kucing — muncul/hilang mengikuti presence.
+
+    private var spotlightBeamLayer: some View {
+        SpotlightBeamView()
+            .opacity(self.engine.isSpotlightPresent ? 1 : 0)
+            .position(
+                x: self.engine.spotlightX,
+                y: self.engine.spotlightY
+                    - CatLayoutConstants.spotlightBeamHeight / 2
+                    + CatLayoutConstants.avatarSize * 0.5
+                    + CatLayoutConstants.spotlightHaloOffsetY
+            )
+            .allowsHitTesting(false)
+    }
+
+    // MARK: - Spotlight Particles Layer
+    // Debu cahaya melayang di dalam beam — biar panggung tidak sepi.
+
+    private var spotlightParticlesLayer: some View {
+        SpotlightParticlesView()
+            .opacity(self.engine.isSpotlightPresent ? 1 : 0)
+            .position(
+                x: self.engine.spotlightX,
+                y: self.engine.spotlightY
+                    - CatLayoutConstants.spotlightBeamHeight / 2
+                    + CatLayoutConstants.avatarSize * 0.5
+                    + CatLayoutConstants.spotlightHaloOffsetY
+            )
+            .allowsHitTesting(false)
+    }
+
+    // MARK: - Spotlight Stage Label Layer
+    // "NOW PERFORMING / CuanCat" — hanya saat kemunculan AFK, auto-hilang.
+
+    private var spotlightStageLabelLayer: some View {
+        VStack(spacing: 2) {
+            Text(CatStrings.stagePerformingCaption)
+                .font(.system(size: 10, weight: .semibold, design: .rounded))
+                .foregroundColor(Color.white.opacity(0.7))
+            Text(CatStrings.stageName)
+                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .foregroundColor(.white)
+        }
+        .shadow(color: Color.black.opacity(0.5), radius: 4, x: 0, y: 1)
+        .opacity(self.engine.isStageLabelVisible ? 1 : 0)
+        .position(
+            x: self.engine.spotlightX,
+            y: self.engine.spotlightY + CatLayoutConstants.avatarSize * 0.5 + 22
+        )
+        .allowsHitTesting(false)
     }
 
     // MARK: - Cat Layer
@@ -38,7 +139,10 @@ struct CatContainerView: View {
                 y: self.engine.dragOffsetY
             )
             .gesture(self.catGesture)
-            .opacity(self.engine.isDismissed ? 0 : 1)
+            .opacity(
+                (self.engine.isDismissed || !self.engine.isSpotlightPresent)
+                    ? 0 : 1
+            )
             .position(
                 x: self.engine.catPositionX,
                 y: self.engine.catPositionY

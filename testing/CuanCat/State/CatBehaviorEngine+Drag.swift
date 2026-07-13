@@ -95,6 +95,7 @@ extension CatBehaviorEngine {
         lastDismissedFromRight = effectiveX > screenWidth / 2
 
         setIsDismissed(true)
+        setSpotlightPresent(false)
         withAnimation(nil) {
             self.dragOffsetX = 0
             self.dragOffsetY = 0
@@ -102,35 +103,21 @@ extension CatBehaviorEngine {
         cancelPendingAnimations()
         stopIdleTimer()
         stopWalkTimer()
+        // Dibuang = tetap hilang sampai shake/bringBack — AFK tidak
+        // memunculkannya lagi.
+        stopAfkTimer()
         CatAudioManager.shared.stopLoop()
     }
 
-    // MARK: - Bring Back (instan, tanpa walk-in)
+    // MARK: - Bring Back (shake → muncul lagi di spotlight)
 
     func bringBack() {
         guard isDismissed else { return }
         setIsDismissed(false)
-        cancelPendingAnimations()
-
-        // Langsung muncul di homebase default kanan-bawah — tanpa animasi masuk.
-        let defaultHomeX = screenWidth * CatLayoutConstants.defaultStartXRatio
-        let defaultHomeY = screenHeight - CatLayoutConstants.bottomPadding
-
-        var transaction = SwiftUI.Transaction()
-        transaction.disablesAnimations = true
-        withTransaction(transaction) {
-            self.catPositionX = defaultHomeX
-            self.catPositionY = defaultHomeY
-        }
-        homePositionX = defaultHomeX
-        homePositionY = defaultHomeY
-
         setWalkDirection(.right)
-        let restState = stateMachine.nextRestState()
-        setCurrentState(restState)
-        stateMachine.applyTransition(CatTransitionResult(newState: restState, sideEffects: []))
-        CatAudioManager.shared.play(.idle)
-        startIdleTimer()
+        // Muncul di spotlight (tengah) + looping exercise, konsisten dengan
+        // kemunculan AFK biasa.
+        appearForIdle()
     }
 
     // MARK: - Bring Back (legacy walk-in — disimpan untuk dipakai sewaktu-waktu)
