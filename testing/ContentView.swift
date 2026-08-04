@@ -2,8 +2,6 @@ import SwiftUI
 
 struct ContentView: View {
 
-    @State private var isWalkingEnabled: Bool = true
-
     var body: some View {
         NavigationView {
             ScrollView {
@@ -12,7 +10,6 @@ struct ContentView: View {
                     loadingSection
                     transactionSection
                     errorSection
-                    walkingSection
                     uiSection
                 }
                 .padding(16)
@@ -20,8 +17,8 @@ struct ContentView: View {
             .navigationBarTitle("CuanCat Demo", displayMode: .inline)
         }
         .onAppear {
+            // Walking TIDAK diaktifkan lagi — dikunci via CatFeatureFlags.autoWalkingEnabled
             CatOverlayManager.shared.show()
-            CatOverlayManager.shared.setWalkingEnabled(true)
         }
     }
 
@@ -131,29 +128,6 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Walking
-
-    private var walkingSection: some View {
-        ControlSection(title: "Walking") {
-            HStack(spacing: 12) {
-                ControlButton(
-                    label: "setWalkingEnabled\n(true)",
-                    color: isWalkingEnabled ? .green : Color.green.opacity(0.4)
-                ) {
-                    isWalkingEnabled = true
-                    CatOverlayManager.shared.setWalkingEnabled(true)
-                }
-                ControlButton(
-                    label: "setWalkingEnabled\n(false)",
-                    color: !isWalkingEnabled ? .orange : Color.orange.opacity(0.4)
-                ) {
-                    isWalkingEnabled = false
-                    CatOverlayManager.shared.setWalkingEnabled(false)
-                }
-            }
-        }
-    }
-
     // MARK: - UI
 
     private var uiSection: some View {
@@ -173,6 +147,14 @@ struct ContentView: View {
                     }
                     ControlButton(label: "showDemo()", color: .purple) {
                         CatOverlayManager.shared.showDemo()
+                    }
+                }
+                HStack(spacing: 12) {
+                    ControlButton(label: "idleAnim ON\n(page tertentu)", color: .green) {
+                        CatOverlayManager.shared.setIdleAnimationEnabled(true)
+                    }
+                    ControlButton(label: "idleAnim OFF", color: .gray) {
+                        CatOverlayManager.shared.setIdleAnimationEnabled(false)
                     }
                 }
             }

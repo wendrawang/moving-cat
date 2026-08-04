@@ -6,18 +6,17 @@ import UIKit
 // MARK: - Cat Behavior Engine
 //
 // Central orchestrator: owns state machine, runs timers, publishes state.
-// Extensions:
-//   - CatBehaviorEngine+PublicAPI.swift    (transaction, voucher, drag, dismiss)
-//   - CatBehaviorEngine+StateTransition.swift (forceState, processEvent, snap)
-//   - CatBehaviorEngine+SideEffects.swift  (stress, voucher checks, haptic)
-//   - CatBehaviorEngine+Timers.swift       (idle, loading, animation timers)
-//   - CatBehaviorEngine+Walk.swift         (walk cycle, edge logic)
+// Extensions: +PublicAPI (transaction, voucher), +Drag (drag, dismiss, bring back),
+// +StateTransition (forceState, processEvent), +SideEffects (stress, haptic),
+// +Timers (idle, loading, animation), +Walk (walk cycle, edge logic),
+// +Spotlight (AFK appear/hide di tengah layar), +Lifecycle (day change)
 
 final class CatBehaviorEngine: ObservableObject {
 
     // MARK: - Published State
 
-    @Published private(set) var currentState: CatState = .idle
+    /// State awal LANGSUNG acak dari restPool (warmup/pushup/starJump) — bukan idle.
+    @Published private(set) var currentState: CatState = CatState.randomRest()
     @Published private(set) var walkDirection: CatDirection = .right
     @Published var catPositionX: CGFloat = 0
     @Published var catPositionY: CGFloat = 0
@@ -29,6 +28,14 @@ final class CatBehaviorEngine: ObservableObject {
     @Published private(set) var isDismissed: Bool = false
     @Published var dragOffsetX: CGFloat = 0
     @Published var dragOffsetY: CGFloat = 0
+
+    /// Kucing sedang tampil di spotlight. DEFAULT false = sembunyi. True saat
+    /// user AFK atau ada reaction; false saat user menyentuh di luar kucing.
+    @Published private(set) var isSpotlightPresent: Bool = false
+
+    /// Label "Now Performing" — hanya muncul saat kemunculan AFK (bukan
+    /// reaction), lalu auto-hilang setelah stageLabelDuration.
+    @Published private(set) var isStageLabelVisible: Bool = false
 
     // MARK: - Home Position
 
@@ -45,11 +52,17 @@ final class CatBehaviorEngine: ObservableObject {
     var idleTimerCancellable: AnyCancellable?
     var loadingTimerCancellable: AnyCancellable?
     var animationTimerCancellable: AnyCancellable?
+    var afkTimerCancellable: AnyCancellable?
+    var stageLabelTimerCancellable: AnyCancellable?
     var dayChangeObserver: Any?
 
     var idleTimerReady: Bool = false
     var idleElapsedSeconds: TimeInterval = 0
     var loadingElapsedSeconds: TimeInterval = 0
+
+    /// Detik sejak sentuhan terakhir user (di mana pun). Di-reset setiap
+    /// registerUserActivity. Saat mencapai afkAppearThreshold → kucing muncul.
+    var afkElapsedSeconds: TimeInterval = 0
 
     // MARK: - Loading State
 
@@ -79,9 +92,9 @@ final class CatBehaviorEngine: ObservableObject {
 
     var walkTargetX: CGFloat = 0
     var walkTimerCancellable: AnyCancellable?
-    var walkAnimStartX: CGFloat = 0
-    var walkAnimStartTime: Date = Date()
-    var walkAnimDuration: TimeInterval = 0
+    var walkAnimationStartX: CGFloat = 0
+    var walkAnimationStartTime: Date = Date()
+    var walkAnimationDuration: TimeInterval = 0
 
     // MARK: - Drag State
 
@@ -110,26 +123,35 @@ final class CatBehaviorEngine: ObservableObject {
         self.screenWidth = bounds.width
         self.screenHeight = bounds.height
 
-        let defaultHomeX = bounds.width * CatLayoutConstants.defaultStartXRatio
-        let defaultHomeY = bounds.height - CatLayoutConstants.bottomPadding
-        self.homePositionX = defaultHomeX
-        self.homePositionY = defaultHomeY
-        self.catPositionX = defaultHomeX
-        self.catPositionY = defaultHomeY
+        // Posisi awal langsung di spotlight (tengah) — bukan pojok.
+        let spotlightPositionX = bounds.width * CatLayoutConstants.spotlightXRatio
+        let spotlightPositionY = bounds.height * CatLayoutConstants.spotlightYRatio
+        self.homePositionX = spotlightPositionX
+        self.homePositionY = spotlightPositionY
+        self.catPositionX = spotlightPositionX
+        self.catPositionY = spotlightPositionY
+
+        // State awal dari shuffle-bag — acak tapi rotasi berikutnya dijamin
+        // menampilkan KETIGA exercise (bukan random murni).
+        currentState = stateMachine.nextRestState()
+        stateMachine.applyTransition(
+            CatTransitionResult(newState: currentState, sideEffects: [])
+        )
 
         loadPersistedData()
-//        startIdleTimer()
         observeDayChange()
     }
     
+    /// Frame pertama siap. Kucing TIDAK langsung tampil — hanya mulai
+    /// menghitung AFK (lihat +Spotlight).
     func markReadyAndStartTimer() {
         guard !idleTimerReady else { return }
         idleTimerReady = true
-        CatAudioManager.shared.play(.idle)
-        startIdleTimer()
+        if isIdleAnimationEnabled { startAfkTimer() }
     }
 
     // MARK: - Persistence Loading
+    // Harus di file ini (bukan extension) karena men-set properti private(set).
 
     private func loadPersistedData() {
         stressPoints = persistence.loadStressPoints()
@@ -147,24 +169,21 @@ final class CatBehaviorEngine: ObservableObject {
         checkAndShowVoucher()
     }
 
-    private func observeDayChange() {
-        dayChangeObserver = NotificationCenter.default.addObserver(
-            forName: UIApplication.significantTimeChangeNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            self?.processEvent(.dayChanged)
-        }
-    }
-
     // MARK: - Walking Enable / Disable
+    // Default false (CatFeatureFlags). Logic walk utuh — aktifkan via setWalkingEnabled(true).
 
-    private(set) var isWalkingEnabled: Bool = true
+    private(set) var isWalkingEnabled: Bool = CatFeatureFlags.autoWalkingEnabled
 
     func setWalkingEnabled(_ enabled: Bool) {
-        isWalkingEnabled = enabled
-        if enabled { idleElapsedSeconds = 0 }
+        // Dikunci feature flag: selama autoWalkingEnabled = false, tidak ada
+        // caller yang bisa menyalakan walking. Set flag true untuk mengaktifkan.
+        isWalkingEnabled = enabled && CatFeatureFlags.autoWalkingEnabled
+        if isWalkingEnabled { idleElapsedSeconds = 0 }
     }
+
+    // MARK: - Spotlight Idle Enable / Disable
+    // Toggle per halaman via setIdleAnimationEnabled (+Spotlight). Reaction tetap muncul.
+    var isIdleAnimationEnabled: Bool = CatFeatureFlags.idleAnimationEnabledByDefault
 
     // MARK: - Loading Type
 
@@ -188,21 +207,30 @@ final class CatBehaviorEngine: ObservableObject {
     func setPendingVoucher(_ voucher: VoucherModel?) { pendingVoucher = voucher }
     func setIsVoucherOverlayVisible(_ visible: Bool) { isVoucherOverlayVisible = visible }
     func setIsPassportVisible(_ visible: Bool) { isPassportVisible = visible }
-    func setIsDismissed(_ val: Bool) { isDismissed = val }
+    func setIsDismissed(_ dismissed: Bool) { isDismissed = dismissed }
+    func setSpotlightPresent(_ present: Bool) { isSpotlightPresent = present }
+    func setStageLabelVisible(_ visible: Bool) { isStageLabelVisible = visible }
+
+    // MARK: - Display Animation
+
+    /// Animasi yang dirender — 1:1 dari state (rest state = exercise animation).
+    var displayAnimation: CatAnimationType {
+        currentState.animationType
+    }
 
     // MARK: - Mutable Setters
 
     func setCurrentState(_ state: CatState) { currentState = state }
-    func setCatPositionX(_ val: CGFloat) { catPositionX = val }
-    func setCatPositionY(_ val: CGFloat) { catPositionY = val }
-    func setWalkDirection(_ dir: CatDirection) { walkDirection = dir }
-    func setShowVoucherEnvelope(_ val: Bool) { showVoucherEnvelope = val }
+    func setCatPositionX(_ position: CGFloat) { catPositionX = position }
+    func setCatPositionY(_ position: CGFloat) { catPositionY = position }
+    func setWalkDirection(_ direction: CatDirection) { walkDirection = direction }
+    func setShowVoucherEnvelope(_ visible: Bool) { showVoucherEnvelope = visible }
 
-    func updateStressPoints(_ val: Int) {
+    func updateStressPoints(_ points: Int) {
         withAnimation(.easeInOut(duration: 0.8)) {
-            stressPoints = val
+            stressPoints = points
         }
-        persistence.saveStressPoints(val)
+        persistence.saveStressPoints(points)
     }
 
     func appendVoucherHistory(_ voucher: VoucherModel) {
@@ -216,20 +244,6 @@ final class CatBehaviorEngine: ObservableObject {
             moodHistory = Array(moodHistory.suffix(maxEntries))
         }
         persistence.saveMoodHistory(moodHistory)
-    }
-
-    // MARK: - Cleanup
-
-    func cleanup() {
-        CatAudioManager.shared.stopAll()
-        walkTimerCancellable?.cancel()
-        idleTimerCancellable?.cancel()
-        loadingTimerCancellable?.cancel()
-        animationTimerCancellable?.cancel()
-
-        if let observer = dayChangeObserver {
-            NotificationCenter.default.removeObserver(observer)
-        }
     }
 
     deinit { cleanup() }

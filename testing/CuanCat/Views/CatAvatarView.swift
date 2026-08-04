@@ -4,16 +4,15 @@ import SwiftUI
 
 struct CatAvatarView: View {
 
-    let currentState: CatState
+    /// Animasi yang dirender — engine yang menentukan (state idle bisa
+    /// menjadi warmup/pushup/starJump via CatBehaviorEngine.displayAnimation).
+    let displayAnimation: CatAnimationType
     let walkDirection: CatDirection
     let showVoucherEnvelope: Bool
     let onVoucherTap: () -> Void
     var onFirstFrameReady: (() -> Void)? = nil
 
     private let renderer = CatFrameRenderer()
-//    private let renderer = LottieCatRenderer()
-//    private let renderer = USDCCatRenderer()  // alternatif SceneKit (.usdc)
-//    private let renderer = CatVideoRenderer()  // alternatif AVFoundation (.mov)
 
     var body: some View {
         ZStack {
@@ -31,7 +30,7 @@ struct CatAvatarView: View {
 
     private var renderedCat: some View {
         renderer.makeBody(
-            state: currentState,
+            animation: displayAnimation,
             direction: walkDirection,
             onFirstFrameReady: onFirstFrameReady
         )
@@ -56,7 +55,7 @@ struct CatAvatarView: View {
 
 extension CatAvatarView: Equatable {
     static func == (lhs: CatAvatarView, rhs: CatAvatarView) -> Bool {
-        lhs.currentState == rhs.currentState &&
+        lhs.displayAnimation == rhs.displayAnimation &&
         lhs.walkDirection == rhs.walkDirection &&
         lhs.showVoucherEnvelope == rhs.showVoucherEnvelope
     }
